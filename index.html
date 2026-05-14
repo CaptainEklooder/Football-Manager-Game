@@ -299,9 +299,16 @@
                 <select id="stadium-type">
                     <option value="Small Local Ground">Small Local Ground (Cap: 4k | €50k)</option>
                     <option value="Mid-Sized Arena">Mid-Sized Arena (Cap: 15k | €200k)</option>
-                    <option value="Classic Park">Classic Park (Cap: 30k | €500k)</option>
-                    <option value="Modern Stadium">Modern Stadium (Cap: 50k | €1.2M)</option>
-                    <option value="Massive Bowl">Massive Bowl (Cap: 80k | €2.5M)</option>
+                    <option value="Community Field">Community Field (Cap: 3k | €30k)</option>
+                    <option value="Local Park">Local Park (Cap: 5k | €60k)</option>
+                    <option value="Town Ground">Town Ground (Cap: 6k | €70k)</option>
+                    <option value="Village Stadium">Village Stadium (Cap: 7k | €80k)</option>
+                    <option value="Borough Arena">Borough Arena (Cap: 8k | €90k)</option>
+                    <option value="District Ground">District Ground (Cap: 9k | €100k)</option>
+                    <option value="Municipal Stadium">Municipal Stadium (Cap: 10k | €120k)</option>
+                    <option value="Regional Field">Regional Field (Cap: 12k | €140k)</option>
+                    <option value="County Ground">County Ground (Cap: 14k | €160k)</option>
+                    <option value="Provincial Arena">Provincial Arena (Cap: 16k | €180k)</option>
                 </select>
             </div>
         </div>
@@ -426,43 +433,49 @@
                     <div class="pitch-container" id="pitch-visualizer"></div>
                 </div>
                 <div class="panel">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
-                        <h3 style="margin: 0;">Squad List</h3>
-                    </div>
-                    
-                    <div style="background-color: var(--input-bg); border: 1px solid var(--panel-border); padding: 10px; border-radius: 5px; margin-bottom: 10px; display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
-                        <select id="retrain-pos-select" style="padding: 5px; width: auto; font-size: 14px;">
-                            <option value="GK">GK</option>
-                            <option value="CB">CB</option>
-                            <option value="LB">LB</option>
-                            <option value="RB">RB</option>
-                            <option value="LWB">LWB</option>
-                            <option value="RWB">RWB</option>
-                            <option value="CDM">CDM</option>
-                            <option value="CM">CM</option>
-                            <option value="CAM">CAM</option>
-                            <option value="LAM">LAM</option>
-                            <option value="RAM">RAM</option>
-                            <option value="LM">LM</option>
-                            <option value="RM">RM</option>
-                            <option value="LW">LW</option>
-                            <option value="RW">RW</option>
-                            <option value="CF">CF</option>
-                            <option value="LF">LF</option>
-                            <option value="RF">RF</option>
-                            <option value="ST">ST</option>
-                        </select>
-                        <button class="btn-small" onclick="retrainPlayer()" style="background-color: var(--secondary); flex: 1;">Retrain Position</button>
-                        <button class="btn-small" onclick="renewContract()" style="background-color: var(--primary); flex: 1;">Renew Contract (€<span id="renew-cost">0</span>)</button>
-                        <button class="btn-small" onclick="trainPlayer()" style="background-color: var(--train-color); flex: 1; color: white;">Train (+1 OVR) (€5,000) [<span id="trainings-left">15</span>/15]</button>
-                    </div>
+                    <h3>Stadium Management</h3>
+                    <p>Current Stadium: <span id="current-stadium"></span> (Capacity: <span id="current-cap"></span>)</p>
+                    <p id="upgrade-status" style="color: var(--danger);"></p>
+                    <button onclick="upgradeStadium()" id="upgrade-btn">Upgrade Stadium (€100,000 - +5,000 Capacity)</button>
+                </div>
+            </div>
+            <div class="panel">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
+                    <h3 style="margin: 0;">Squad List</h3>
+                </div>
+                
+                <div style="background-color: var(--input-bg); border: 1px solid var(--panel-border); padding: 10px; border-radius: 5px; margin-bottom: 10px; display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
+                    <select id="retrain-pos-select" style="padding: 5px; width: auto; font-size: 14px;">
+                        <option value="GK">GK</option>
+                        <option value="CB">CB</option>
+                        <option value="LB">LB</option>
+                        <option value="RB">RB</option>
+                        <option value="LWB">LWB</option>
+                        <option value="RWB">RWB</option>
+                        <option value="CDM">CDM</option>
+                        <option value="CM">CM</option>
+                        <option value="CAM">CAM</option>
+                        <option value="LAM">LAM</option>
+                        <option value="RAM">RAM</option>
+                        <option value="LM">LM</option>
+                        <option value="RM">RM</option>
+                        <option value="LW">LW</option>
+                        <option value="RW">RW</option>
+                        <option value="CF">CF</option>
+                        <option value="LF">LF</option>
+                        <option value="RF">RF</option>
+                        <option value="ST">ST</option>
+                    </select>
+                    <button class="btn-small" onclick="retrainPlayer()" style="background-color: var(--secondary); flex: 1;">Retrain Position</button>
+                    <button class="btn-small" onclick="renewContract()" style="background-color: var(--primary); flex: 1;">Renew Contract (€<span id="renew-cost">0</span>)</button>
+                    <button class="btn-small" onclick="trainPlayer()" style="background-color: var(--train-color); flex: 1; color: white;">Train (+1 OVR) (€5,000) [<span id="trainings-left">15</span>/15]</button>
+                </div>
 
-                    <div style="max-height: 800px; overflow-y: auto;">
-                        <table id="squad-table">
-                            <thead><tr><th>Name</th><th>Role</th><th>Pos</th><th>OVR</th><th>Goals</th><th>Contract</th></tr></thead>
-                            <tbody id="squad-list"></tbody>
-                        </table>
-                    </div>
+                <div style="max-height: 800px; overflow-y: auto;">
+                    <table id="squad-table">
+                        <thead><tr><th>Name</th><th>Role</th><th>Pos</th><th>OVR</th><th>Goals</th><th>Contract</th></tr></thead>
+                        <tbody id="squad-list"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -1183,6 +1196,16 @@
         const stadiumDetails = {
             "Small Local Ground": { cap: 4000, cost: 50000 },
             "Mid-Sized Arena": { cap: 15000, cost: 200000 },
+            "Community Field": { cap: 3000, cost: 30000 },
+            "Local Park": { cap: 5000, cost: 60000 },
+            "Town Ground": { cap: 6000, cost: 70000 },
+            "Village Stadium": { cap: 7000, cost: 80000 },
+            "Borough Arena": { cap: 8000, cost: 90000 },
+            "District Ground": { cap: 9000, cost: 100000 },
+            "Municipal Stadium": { cap: 10000, cost: 120000 },
+            "Regional Field": { cap: 12000, cost: 140000 },
+            "County Ground": { cap: 14000, cost: 160000 },
+            "Provincial Arena": { cap: 16000, cost: 180000 },
             "Classic Park": { cap: 30000, cost: 500000 },
             "Modern Stadium": { cap: 50000, cost: 1200000 },
             "Massive Bowl": { cap: 80000, cost: 2500000 }
@@ -1198,6 +1221,7 @@
             squad: [], loanedOut: [], academy: [], leagueTable: [],
             availableScouts: [], hiredScout: null,
             worldLeagues: { 1: [], 2: [], 3: [], 4: [] },
+            stadiumUpgradeInProgress: false, upgradeDuration: 0, temporaryStadium: '',
             leagueFixtures: [],
             nextFixtureType: 'League', currentOpponent: '', isHomeGame: true,
             cupRoundIndex: 0, cupStatus: 'Active',
@@ -1311,6 +1335,7 @@
             document.getElementById('season-display').style.display = 'inline';
             
             applyGlobalBadge();
+            updateStadiumDisplay();
 
             generateSquad();
             searchScouts();
@@ -1633,6 +1658,38 @@
             });
         }
 
+        function updateStadiumDisplay() {
+            document.getElementById('current-stadium').innerText = gameState.stadium;
+            document.getElementById('current-cap').innerText = gameState.stadiumCap.toLocaleString();
+            if(gameState.stadiumUpgradeInProgress) {
+                document.getElementById('upgrade-status').innerText = `Upgrading... ${gameState.upgradeDuration} weeks remaining. Playing at ${gameState.temporaryStadium}`;
+                document.getElementById('upgrade-btn').disabled = true;
+            } else {
+                document.getElementById('upgrade-status').innerText = '';
+                document.getElementById('upgrade-btn').disabled = false;
+            }
+        }
+
+        function upgradeStadium() {
+            if(gameState.stadiumUpgradeInProgress) {
+                alert("Stadium upgrade already in progress!");
+                return;
+            }
+            let cost = 100000;
+            if(gameState.budget < cost) {
+                alert("Insufficient budget for stadium upgrade!");
+                return;
+            }
+            gameState.budget -= cost;
+            gameState.stadiumCap += 5000;
+            gameState.stadiumUpgradeInProgress = true;
+            gameState.upgradeDuration = 4;
+            gameState.temporaryStadium = "Neutral Ground";
+            updateHeaderFinancials();
+            updateStadiumDisplay();
+            alert("Stadium upgrade initiated! Capacity increased by 5,000. Playing at Neutral Ground for 4 weeks.");
+        }
+
         function renderSetPieces() {
             const starters = gameState.squad.filter(p => p.isStarting && p.status === 'Active');
             
@@ -1864,11 +1921,19 @@
             
             if(gameState.isHomeGame) {
                 matchupDisplay.innerHTML = `${clubDisplay} <span style="color: #95a5a6; margin:0 10px;">vs</span> <span>${gameState.currentOpponent}</span>`;
-                document.getElementById('match-venue-display').innerText = `${gameState.stadium} (Cap: ${gameState.stadiumCap.toLocaleString()})`;
             } else {
                 matchupDisplay.innerHTML = `<span>${gameState.currentOpponent}</span> <span style="color: #95a5a6; margin:0 10px;">vs</span> ${clubDisplay}`;
-                document.getElementById('match-venue-display').innerText = `${gameState.currentOpponent} Arena`;
             }
+            
+            let venueText;
+            if(gameState.stadiumUpgradeInProgress) {
+                venueText = gameState.temporaryStadium;
+            } else if(gameState.isHomeGame) {
+                venueText = `${gameState.stadium} (Cap: ${gameState.stadiumCap.toLocaleString()})`;
+            } else {
+                venueText = `${gameState.currentOpponent} Arena`;
+            }
+            document.getElementById('match-venue-display').innerText = venueText;
             
             applyGlobalBadge();
 
@@ -2179,6 +2244,16 @@
                 }
             });
             
+            if(gameState.stadiumUpgradeInProgress) {
+                gameState.upgradeDuration--;
+                if(gameState.upgradeDuration <= 0) {
+                    gameState.stadiumUpgradeInProgress = false;
+                    gameState.temporaryStadium = '';
+                    updateStadiumDisplay();
+                    alert("Stadium upgrade complete! Welcome back to your home ground.");
+                }
+            }
+            
             let returningPlayers = [];
             gameState.squad.forEach(p => {
                 if (p.status !== 'Active') {
@@ -2222,6 +2297,7 @@
 
             renderSquadTable(); 
             renderTopScorers(); 
+            updateStadiumDisplay(); 
             
             if(isTransferWindowOpen() && gameState.matchweek < gameState.totalMatchweeks) {
                 if(Math.random() < 0.35 && gameState.squad.length > 15) {
