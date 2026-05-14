@@ -1,1 +1,2910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Club Manager Simulator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            /* Light Theme Variables */
+            --primary: #1abc9c;
+            --secondary: #16a085;
+            --bg-color: #ecf0f1;
+            --panel-bg: #ffffff;
+            --panel-border: #e9ecef;
+            --text-dark: #2c3e50;
+            --text-light: #ecf0f1;
+            --header-bg: #2c3e50;
+            --table-header: #e9ecef;
+            --row-hover: #e8f4f8;
+            --promo-bg: #d4edda;
+            --rel-bg: #f8d7da;
+            --input-bg: #ffffff;
+            --input-border: #ccc;
+            --cup-color: #8e44ad;
+            --danger: #e74c3c;
+            --train-color: #3498db;
+            --star-color: #f1c40f;
+        }
 
+        body.dark-mode {
+            /* Dark Theme Variables */
+            --primary: #3b82f6; 
+            --secondary: #2563eb; 
+            --bg-color: #0b1120; 
+            --panel-bg: #1e3a8a; 
+            --panel-border: #1e40af; 
+            --text-dark: #f8fafc; 
+            --text-light: #f8fafc;
+            --header-bg: #0f172a; 
+            --table-header: #1e40af;
+            --row-hover: #1d4ed8;
+            --promo-bg: #064e3b; 
+            --rel-bg: #7f1d1d; 
+            --input-bg: #0f172a;
+            --input-border: #3b82f6;
+            --train-color: #2980b9;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        header {
+            background-color: var(--header-bg);
+            color: var(--text-light);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s;
+        }
+        .header-stats { text-align: right; font-size: 14px; }
+        .theme-toggle-btn {
+            background-color: var(--primary); color: white; border: none; padding: 5px 10px;
+            border-radius: 5px; cursor: pointer; font-size: 14px; margin-left: 15px; width: auto;
+        }
+        
+        /* Screens */
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        /* Setup Screen */
+        #setup-screen, #offseason-screen {
+            max-width: 800px; margin: 40px auto; background: var(--panel-bg);
+            padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 1px solid var(--panel-border);
+        }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 3px; font-weight: bold; font-size: 14px;}
+        input[type="text"], select { 
+            width: 100%; padding: 8px; border: 1px solid var(--input-border); 
+            border-radius: 5px; box-sizing: border-box; 
+            background-color: var(--input-bg); color: var(--text-dark);
+        }
+        input[type="color"] { width: 100%; height: 35px; border: none; cursor: pointer; background: transparent; padding:0; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        .color-group { display: flex; gap: 15px; }
+        
+        button {
+            background-color: var(--primary); color: white; border: none; padding: 10px 20px; 
+            border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px;
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:hover { background-color: var(--secondary); }
+        button:active { transform: scale(0.98); }
+        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        .btn-small { padding: 5px 10px; font-size: 14px; margin: 0; width: auto; }
+        .btn-danger { background-color: var(--danger) !important; }
+
+        /* Main Game Layout */
+        #main-game {
+            max-width: 1200px; margin: 20px auto; background: var(--panel-bg);
+            min-height: 80vh; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 1px solid var(--panel-border);
+        }
+        .tabs { display: flex; background-color: var(--header-bg); }
+        .tab-btn {
+            flex: 1; background: none; border: none; color: var(--text-light);
+            padding: 15px; font-size: 16px; cursor: pointer; border-radius: 0;
+        }
+        .tab-btn:hover, .tab-btn.active { background-color: var(--primary); }
+        .tab-content { display: none; padding: 20px; }
+        .tab-content.active { display: block; }
+        
+        /* Transfer Sub-Tabs */
+        .sub-tab-btn { background-color: var(--panel-border); color: var(--text-dark); }
+        .sub-tab-btn.active { background-color: var(--primary); color: white; font-weight: bold; }
+        .sub-tab-content { display: none; padding-top: 15px; }
+        .sub-tab-content.active { display: block; }
+
+        /* Grids & Tables */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        .panel { background: var(--panel-bg); padding: 15px; border-radius: 5px; border: 1px solid var(--panel-border); }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--panel-border); vertical-align: middle; }
+        th { background-color: var(--table-header); }
+        
+        body:not(.dark-mode) .user-row { background-color: #d4edda; font-weight: bold; }
+        body.dark-mode .user-row { background-color: #064e3b; font-weight: bold; }
+
+        /* Squad Selection */
+        .squad-row { cursor: pointer; transition: background 0.2s; }
+        .squad-row:hover { background-color: var(--row-hover); }
+        .squad-row.selected { background-color: #f1c40f !important; color: #2c3e50; font-weight: bold; }
+
+        /* Live Kit & Badge Visualizer CSS */
+        .shirt-container {
+            text-align: center; padding: 10px; background: var(--header-bg);
+            border-radius: 5px; margin-top: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .shirt-preview-wrapper {
+            filter: drop-shadow(0px 4px 5px rgba(0,0,0,0.5));
+            display: inline-block; margin-top: 5px; position: relative;
+        }
+        .shirt-preview {
+            width: 140px; height: 140px; position: relative;
+            clip-path: polygon(20% 0%, 35% 15%, 65% 15%, 80% 0%, 100% 25%, 85% 40%, 75% 30%, 75% 100%, 25% 100%, 25% 30%, 15% 40%, 0% 25%);
+            background-color: #e74c3c; overflow: hidden;
+            background-position: center; background-size: cover;
+        }
+        .badge-overlay {
+            position: absolute;
+            display: flex; justify-content: center; align-items: center;
+            font-weight: bold; font-family: sans-serif;
+            text-shadow: 0px 0px 2px rgba(0,0,0,0.5);
+            transition: all 0.1s;
+        }
+        .global-badge {
+            display: inline-flex; justify-content: center; align-items: center;
+            font-weight: bold; font-family: sans-serif; text-shadow: 0px 0px 2px rgba(0,0,0,0.5);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3); vertical-align: middle; margin-right: 10px;
+        }
+
+        /* Canvas Kit Designer Overlay */
+        #kit-designer-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 3000; display: none;
+            justify-content: center; align-items: center;
+        }
+        #kit-designer-modal {
+            background: var(--panel-bg); padding: 20px; border-radius: 10px; text-align: center;
+            width: 90%; max-width: 350px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .kd-tools {
+            display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 15px; align-items: center;
+        }
+        .kd-tool-btn {
+            background: var(--panel-border); color: var(--text-dark); border: 1px solid #ccc; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 14px;
+        }
+        .kd-tool-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        
+        #kd-canvas {
+            border: 2px dashed #95a5a6; background-color: #ffffff; cursor: crosshair; touch-action: none;
+            clip-path: polygon(20% 0%, 35% 15%, 65% 15%, 80% 0%, 100% 25%, 85% 40%, 75% 30%, 75% 100%, 25% 100%, 25% 30%, 15% 40%, 0% 25%);
+        }
+
+        /* Pitch Visualization */
+        .pitch-container {
+            background-color: #27ae60; height: 400px; border-radius: 5px;
+            border: 2px solid white; position: relative; margin-top: 20px;
+            display: flex; flex-direction: column-reverse; justify-content: space-evenly;
+            padding: 10px 0; background-image: linear-gradient(to bottom, transparent 49.5%, rgba(255,255,255,0.5) 49.5%, rgba(255,255,255,0.5) 50.5%, transparent 50.5%);
+        }
+        .pitch-line { display: flex; justify-content: space-around; align-items: center; width: 100%; z-index: 2; }
+        .player-dot {
+            width: 32px; height: 32px; border-radius: 50%; border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3); display: flex; justify-content: center;
+            align-items: center; font-size: 10px; font-weight: bold; color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            background-position: center;
+        }
+        .center-circle {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 80px; height: 80px; border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 50%; z-index: 1;
+        }
+
+        /* Live Match Overlay (2D) */
+        #live-match-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 17, 32, 0.95); z-index: 1000; display: none;
+            flex-direction: column; justify-content: center; align-items: center; color: white;
+        }
+        .live-scoreboard { font-size: 3rem; margin-bottom: 20px; font-weight: bold; text-align: center;}
+        .live-clock { font-size: 2rem; color: #f1c40f; margin-bottom: 20px; }
+        .live-events {
+            background: rgba(0,0,0,0.8); width: 80%; max-width: 600px; height: 300px;
+            overflow-y: auto; padding: 20px; border-radius: 10px; font-size: 1.2rem;
+            display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--primary);
+        }
+        .event-goal { color: #2ecc71; font-weight: bold; }
+        .event-goal-opp { color: #f39c12; font-weight: bold; }
+        .event-card-y { color: #f1c40f; }
+        .event-card-r { color: #e74c3c; font-weight: bold; }
+        
+        .timer-display { font-size: 3rem; color: var(--danger); font-weight: bold; text-align: center; margin: 20px 0;}
+        
+        /* Match Box */
+        .match-result-box {
+            padding: 15px; margin-top: 15px; border-radius: 5px;
+            text-align: center; font-weight: bold; display: none; border: 1px solid transparent;
+        }
+        body:not(.dark-mode) .result-league { background-color: #fff3cd; border-color: #ffeeba; color: #856404; }
+        body:not(.dark-mode) .result-cup { background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+        body.dark-mode .result-league { background-color: #78350f; border-color: #b45309; color: #fef3c7; }
+        body.dark-mode .result-cup { background-color: #064e3b; border-color: #047857; color: #d1fae5; }
+        
+        /* Scout Styles */
+        .scout-card { background: var(--input-bg); padding: 10px; border: 1px solid var(--panel-border); border-radius: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
+        .star { color: var(--star-color); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="display: flex; align-items: center;">
+            <div id="header-badge" class="global-badge" style="display:none; width: 35px; height: 35px; font-size: 14px;"></div>
+            <div>
+                <h1 style="margin:0; display:inline-block;">Club Manager</h1>
+                <button class="theme-toggle-btn" onclick="toggleTheme()">🌙 Theme</button>
+                <br>
+                <span id="season-display" style="display:none; font-size: 14px; margin-top: 5px;">
+                    Season: <span id="season-year">2025/26</span> | Matchweek: <span id="matchweek-num">0</span> / <span id="total-matchweeks">0</span>
+                </span>
+            </div>
+        </div>
+        <div id="manager-info" class="header-stats" style="display:none;">
+            <strong>Manager:</strong> <span id="display-manager"></span> | <strong>Club:</strong> <span id="display-club"></span><br>
+            <strong>Budget:</strong> <span id="display-budget">€0</span> | <strong>Stadium Cap:</strong> <span id="display-stadium-cap">0</span>
+        </div>
+    </header>
+
+    <div id="setup-screen" class="screen active">
+        <h2>Create Your Club</h2>
+        
+        <div class="form-group color-group">
+            <div style="flex:1;">
+                <label>Manager Profile</label>
+                <select id="manager-type">
+                    <option value="Custom">Custom (No Bonus)</option>
+                    <option value="Tactician">The Tactician (+2 Squad OVR)</option>
+                    <option value="Motivator">The Motivator (Late Goal Boost)</option>
+                    <option value="Economist">The Economist (+€500k Start Budget)</option>
+                    <option value="Youth">Youth Developer (High Potential Academy)</option>
+                </select>
+            </div>
+            <div style="flex:1;"><label>Manager Name</label><input type="text" id="manager-name" placeholder="Enter your name"></div>
+            <div style="flex:1;"><label>Club Name</label><input type="text" id="club-name" placeholder="e.g., AFC Richmond"></div>
+        </div>
+
+        <div class="form-group color-group">
+            <div style="flex:1;">
+                <label>Country (Starts in Tier 4)</label>
+                <select id="country-select">
+                    <option value="England">England (League Two)</option>
+                    <option value="Spain">Spain (Segunda Federación)</option>
+                    <option value="Italy">Italy (Serie D)</option>
+                    <option value="Germany">Germany (Regionalliga)</option>
+                    <option value="France">France (National 2)</option>
+                </select>
+            </div>
+            <div style="flex:1;">
+                <label>Stadium Type (Init. Budget: €3.0m)</label>
+                <select id="stadium-type">
+                    <option value="Small Local Ground">Small Local Ground (Cap: 4k | €50k)</option>
+                    <option value="Mid-Sized Arena">Mid-Sized Arena (Cap: 15k | €200k)</option>
+                    <option value="Classic Park">Classic Park (Cap: 30k | €500k)</option>
+                    <option value="Modern Stadium">Modern Stadium (Cap: 50k | €1.2M)</option>
+                    <option value="Massive Bowl">Massive Bowl (Cap: 80k | €2.5M)</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group"><label>Stadium Name</label><input type="text" id="stadium-name" placeholder="Name your fortress"></div>
+
+        <h3 style="margin-top: 20px; border-bottom: 1px solid var(--panel-border); padding-bottom: 5px;">Kit & Badge Designer</h3>
+        <div class="color-group">
+            <div style="flex: 1.2; background: var(--header-bg); padding: 15px; border-radius: 5px; color: var(--text-light); display: flex; flex-direction: column; justify-content: center;">
+                <label style="text-align: center; margin-bottom:15px; font-size: 16px;">Team Kit</label>
+                <button onclick="openKitDesigner('setup')" style="margin-top:0;">🎨 Design Your Kit</button>
+                <button onclick="clearKitDesign('setup')" style="background-color: var(--danger); margin-top:10px;">Reset to Default</button>
+            </div>
+
+            <div style="flex: 1.2; background: var(--header-bg); padding: 15px; border-radius: 5px; color: var(--text-light);">
+                <div class="color-group" style="margin-bottom: 10px;">
+                    <div style="flex:1;">
+                        <label>Badge Shape</label>
+                        <select id="badge-shape" onchange="updateKitPreview('setup')">
+                            <option value="Shield">Shield</option>
+                            <option value="Circle">Circle</option>
+                            <option value="Square">Rounded Square</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label>Initials</label>
+                        <input type="text" id="badge-text" value="AFC" maxlength="3" oninput="updateKitPreview('setup')" style="text-align: center; text-transform: uppercase;">
+                    </div>
+                </div>
+                <div class="color-group" style="margin-bottom: 10px;">
+                    <div style="flex:1;"><label>Badge Color</label><input type="color" id="badge-color" value="#f1c40f" oninput="updateKitPreview('setup')"></div>
+                    <div style="flex:1;"><label>Text Color</label><input type="color" id="badge-text-color" value="#000000" oninput="updateKitPreview('setup')"></div>
+                </div>
+                
+                <label style="display:flex; justify-content:space-between;"><span>Size:</span> <span id="setup-val-size">25</span></label>
+                <input type="range" id="badge-size" min="15" max="50" value="25" oninput="updateKitPreview('setup')">
+
+                <label style="display:flex; justify-content:space-between; margin-top:5px;"><span>Left/Right (X):</span> <span id="setup-val-x">70</span></label>
+                <input type="range" id="badge-x" min="20" max="80" value="70" oninput="updateKitPreview('setup')">
+
+                <label style="display:flex; justify-content:space-between; margin-top:5px;"><span>Up/Down (Y):</span> <span id="setup-val-y">35</span></label>
+                <input type="range" id="badge-y" min="20" max="80" value="35" oninput="updateKitPreview('setup')">
+            </div>
+
+            <div style="flex: 1;" class="shirt-container">
+                <label style="font-size: 14px; color: var(--text-light); font-weight: bold;">Live Preview</label>
+                <div class="shirt-preview-wrapper">
+                    <div id="setup-shirt-preview" class="shirt-preview">
+                        <div id="setup-badge-preview" class="badge-overlay">AFC</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="startGame()" style="margin-top: 20px;">Start Career</button>
+    </div>
+
+    <div id="main-game" class="screen">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchMainTab(event, 'team-tab')">Team & Tactics</button>
+            <button class="tab-btn" onclick="switchMainTab(event, 'match-tab')">Match & League</button>
+            <button class="tab-btn" onclick="switchMainTab(event, 'transfer-tab')">Transfers</button>
+            <button class="tab-btn" onclick="switchMainTab(event, 'academy-tab')">Academy</button>
+        </div>
+
+        <div id="team-tab" class="tab-content active">
+            <h2>Squad Setup</h2>
+            <div class="dashboard-grid">
+                <div class="panel">
+                    <h3>Tactics</h3>
+                    <div class="form-group">
+                        <label>Formation</label>
+                        <select id="formation-select" onchange="changeFormation()">
+                            <option value="4-4-2-Balanced">4-4-2 Balanced</option>
+                            <option value="4-4-2-Defensive">4-4-2 Defensive (Wingbacks)</option>
+                            <option value="4-3-3-Attack">4-3-3 Attack</option>
+                            <option value="4-3-3-Defend">4-3-3 Defend</option>
+                            <option value="4-3-3-Balanced">4-3-3 Balanced</option>
+                            <option value="4-3-1-2">4-3-1-2</option>
+                            <option value="4-1-2-1-2-Narrow">4-1-2-1-2 Narrow</option>
+                            <option value="4-1-2-1-2-Wide">4-1-2-1-2 Wide</option>
+                            <option value="4-2-1-3">4-2-1-3</option>
+                            <option value="3-4-2-1">3-4-2-1</option>
+                            <option value="4-2-3-1">4-2-3-1</option>
+                            <option value="4-1-4-1">4-1-4-1</option>
+                            <option value="4-4-1-1">4-4-1-1</option>
+                            <option value="4-3-2-1">4-3-2-1</option>
+                            <option value="5-4-1">5-4-1</option>
+                            <option value="4-5-1">4-5-1</option>
+                            <option value="5-3-2">5-3-2</option>
+                            <option value="5-2-3">5-2-3</option>
+                            <option value="3-4-3">3-4-3</option>
+                            <option value="3-5-2">3-5-2</option>
+                            <option value="3-5-1-1">3-5-1-1</option>
+                            <option value="3-4-1-2">3-4-1-2</option>
+                            <option value="4-1-3-2">4-1-3-2</option>
+                            <option value="4-2-2-2">4-2-2-2</option>
+                            <option value="4-2-4">4-2-4</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Style of Play</label>
+                        <select id="playstyle-select">
+                            <option value="Balanced">Balanced</option>
+                            <option value="Attacking">Attacking</option>
+                            <option value="Defensive">Defensive (Park the Bus)</option>
+                        </select>
+                    </div>
+                    
+                    <h3 style="margin-top:20px; border-bottom:1px solid var(--panel-border); padding-bottom:5px;">Set Piece Takers</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group"><label>Captain</label><select id="sp-captain" onchange="saveSetPieces()"></select></div>
+                        <div class="form-group"><label>Penalties</label><select id="sp-pen" onchange="saveSetPieces()"></select></div>
+                        <div class="form-group"><label>Free Kick (Center)</label><select id="sp-fk-c" onchange="saveSetPieces()"></select></div>
+                        <div class="form-group"><label>Free Kick (Left)</label><select id="sp-fk-l" onchange="saveSetPieces()"></select></div>
+                        <div class="form-group"><label>Free Kick (Right)</label><select id="sp-fk-r" onchange="saveSetPieces()"></select></div>
+                        <div class="form-group"><label>Long Free Kick</label><select id="sp-fk-long" onchange="saveSetPieces()"></select></div>
+                        <div class="form-group"><label>Left Corner</label><select id="sp-corner-l" onchange="saveSetPieces()"></select></div>
+                        <div class="form-group"><label>Right Corner</label><select id="sp-corner-r" onchange="saveSetPieces()"></select></div>
+                    </div>
+
+                    <p><small><em>*Click a player to the right, then click another to swap them between Pitch and Bench.</em></small></p>
+                    <div class="pitch-container" id="pitch-visualizer"></div>
+                </div>
+                <div class="panel">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
+                        <h3 style="margin: 0;">Squad List</h3>
+                    </div>
+                    
+                    <div style="background-color: var(--input-bg); border: 1px solid var(--panel-border); padding: 10px; border-radius: 5px; margin-bottom: 10px; display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
+                        <select id="retrain-pos-select" style="padding: 5px; width: auto; font-size: 14px;">
+                            <option value="GK">GK</option>
+                            <option value="CB">CB</option>
+                            <option value="LB">LB</option>
+                            <option value="RB">RB</option>
+                            <option value="LWB">LWB</option>
+                            <option value="RWB">RWB</option>
+                            <option value="CDM">CDM</option>
+                            <option value="CM">CM</option>
+                            <option value="CAM">CAM</option>
+                            <option value="LAM">LAM</option>
+                            <option value="RAM">RAM</option>
+                            <option value="LM">LM</option>
+                            <option value="RM">RM</option>
+                            <option value="LW">LW</option>
+                            <option value="RW">RW</option>
+                            <option value="CF">CF</option>
+                            <option value="LF">LF</option>
+                            <option value="RF">RF</option>
+                            <option value="ST">ST</option>
+                        </select>
+                        <button class="btn-small" onclick="retrainPlayer()" style="background-color: var(--secondary); flex: 1;">Retrain Position</button>
+                        <button class="btn-small" onclick="renewContract()" style="background-color: var(--primary); flex: 1;">Renew Contract (€<span id="renew-cost">0</span>)</button>
+                        <button class="btn-small" onclick="trainPlayer()" style="background-color: var(--train-color); flex: 1; color: white;">Train (+1 OVR) (€5,000) [<span id="trainings-left">15</span>/15]</button>
+                    </div>
+
+                    <div style="max-height: 800px; overflow-y: auto;">
+                        <table id="squad-table">
+                            <thead><tr><th>Name</th><th>Role</th><th>Pos</th><th>OVR</th><th>Goals</th><th>Contract</th></tr></thead>
+                            <tbody id="squad-list"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="match-tab" class="tab-content">
+            <h2>Match Center</h2>
+            <div class="dashboard-grid">
+                <div class="panel">
+                    <h3>Next Fixture</h3>
+                    <div style="background: var(--input-bg); padding: 15px; border-radius: 5px; border: 1px solid var(--panel-border); text-align: center;">
+                        <p id="fixture-comp" style="color: #7f8c8d; font-weight: bold; text-transform: uppercase; margin-top: 0;">Loading Competition...</p>
+                        
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin: 10px 0;">
+                            <h2 style="margin:0;" id="fixture-matchup">Loading...</h2>
+                        </div>
+                        
+                        <p style="margin-bottom: 0; font-size: 14px;"><strong>Venue:</strong> <span id="match-venue-display"></span></p>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="play-match-btn" onclick="startLiveMatch()" style="flex:1; margin-top:20px; font-size: 18px; padding: 15px;">Simulate Match</button>
+                    </div>
+                    
+                    <div id="last-match-result" class="match-result-box"></div>
+
+                    <h3 style="margin-top: 30px;">Club Top Scorers</h3>
+                    <div id="top-scorers-container">
+                        <p>No goals scored yet.</p>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>League Standings (<span id="league-name"></span>)</h3>
+                    <p style="margin-top:0;"><small id="relegation-rules" style="color:var(--danger); font-weight:bold;"></small></p>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table>
+                            <thead><tr><th>Pos</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead>
+                            <tbody id="league-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="transfer-tab" class="tab-content">
+            <h2>Transfer Market (Budget: <span id="transfer-budget-display"></span>)</h2>
+            <div class="tabs">
+                <button class="tab-btn sub-tab-btn active" onclick="switchTransferTab(event, 'trans-available')">Available Players</button>
+                <button class="tab-btn sub-tab-btn" onclick="switchTransferTab(event, 'trans-free')">Free Agents</button>
+                <button class="tab-btn sub-tab-btn" onclick="switchTransferTab(event, 'trans-sell')">Sell & Loan Players</button>
+            </div>
+            
+            <div class="panel" style="margin-top:10px;">
+                <div id="trans-available" class="sub-tab-content active">
+                    <h3>Market Targets</h3>
+                    <p id="transfer-window-msg" style="color: var(--danger); font-weight: bold; margin-bottom: 5px;"></p>
+                    
+                    <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: flex-end; background: var(--header-bg); padding: 10px; border-radius: 5px; color: var(--text-light);">
+                        <div style="flex: 1;">
+                            <label style="font-size: 14px;">Search by Position</label>
+                            <select id="transfer-search-pos" style="padding: 8px;">
+                                <option value="ALL">All Positions</option>
+                                <option value="GK">Goalkeeper (GK)</option>
+                                <option value="CB">Center Back (CB)</option>
+                                <option value="LB">Left Back (LB/LWB)</option>
+                                <option value="RB">Right Back (RB/RWB)</option>
+                                <option value="CM">Center Mid (CM/CDM/CAM)</option>
+                                <option value="LM">Left Mid/Wing (LM/LW)</option>
+                                <option value="RM">Right Mid/Wing (RM/RW)</option>
+                                <option value="ST">Striker (ST/CF)</option>
+                            </select>
+                        </div>
+                        <button class="btn-small" onclick="searchTransfers()" style="flex: 1; margin-bottom: 2px;">Search Market</button>
+                    </div>
+
+                    <table id="transfer-table">
+                        <thead><tr><th>Name</th><th>Club</th><th>Nat. Pos</th><th>OVR</th><th>Value</th><th>Action</th></tr></thead>
+                        <tbody id="transfer-list"></tbody>
+                    </table>
+                </div>
+                
+                <div id="trans-free" class="sub-tab-content">
+                    <h3>Free Agents</h3>
+                    <p style="color: var(--secondary); font-weight: bold;">Free Agents can be signed at any time!</p>
+                    <table id="free-agent-table">
+                        <thead><tr><th>Name</th><th>Nat. Pos</th><th>OVR</th><th>Wage/Fee</th><th>Action</th></tr></thead>
+                        <tbody id="free-agent-list"></tbody>
+                    </table>
+                </div>
+
+                <div id="trans-sell" class="sub-tab-content">
+                    <h3>Sell or Loan Your Players</h3>
+                    <p style="color: #7f8c8d; font-size: 14px;">You must keep at least 15 active players in your squad.</p>
+                    <table id="sell-table">
+                        <thead><tr><th>Name</th><th>Nat. Pos</th><th>OVR</th><th>Est. Value</th><th>Action</th></tr></thead>
+                        <tbody id="sell-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="academy-tab" class="tab-content">
+            <h2>Youth Academy & Global Scouting</h2>
+            
+            <div class="panel" style="margin-bottom: 20px;">
+                <h3 style="margin-top:0;">Global Scouting Network</h3>
+                
+                <div id="hire-scout-panel" style="display:block;">
+                    <p style="color:var(--danger); font-weight:bold;">You currently do not have a Scout hired!</p>
+                    
+                    <div style="display:flex; gap:10px; margin-bottom: 15px; align-items: flex-end;">
+                        <div style="flex:1;">
+                            <label style="font-size:12px;">Min Experience</label>
+                            <select id="search-scout-exp">
+                                <option value="1">1+ Stars</option>
+                                <option value="2">2+ Stars</option>
+                                <option value="3">3+ Stars</option>
+                                <option value="4">4+ Stars</option>
+                                <option value="5">5 Stars</option>
+                            </select>
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:12px;">Min Judgment</label>
+                            <select id="search-scout-judg">
+                                <option value="1">1+ Stars</option>
+                                <option value="2">2+ Stars</option>
+                                <option value="3">3+ Stars</option>
+                                <option value="4">4+ Stars</option>
+                                <option value="5">5 Stars</option>
+                            </select>
+                        </div>
+                        <button class="btn-small" onclick="searchScouts()" style="flex:1; margin-bottom:2px;">Search Scouts</button>
+                    </div>
+
+                    <div id="available-scouts-list"></div>
+                </div>
+
+                <div id="active-scout-panel" style="display:none;">
+                    <div style="background:var(--header-bg); color:white; padding: 15px; border-radius:5px; margin-bottom:15px;">
+                        <h4 style="margin-top:0;">Your Head Scout: <span id="current-scout-name"></span></h4>
+                        <div>Experience: <span id="current-scout-exp"></span> | Judgment: <span id="current-scout-judg"></span></div>
+                    </div>
+
+                    <div class="form-group color-group">
+                        <div style="flex:1;">
+                            <label>Target Continent</label>
+                            <select id="scout-continent" onchange="updateCountryDropdown()">
+                                <option value="Europe">Europe</option>
+                                <option value="South America">South America</option>
+                                <option value="North America">North America</option>
+                                <option value="Africa">Africa</option>
+                                <option value="Asia">Asia</option>
+                                <option value="Oceania">Oceania</option>
+                            </select>
+                        </div>
+                        <div style="flex:1;">
+                            <label>Target Country</label>
+                            <select id="scout-country"></select>
+                        </div>
+                        <div style="flex:1;">
+                            <label>Target Position</label>
+                            <select id="scout-youth-pos">
+                                <option value="ANY">Any Position</option>
+                                <option value="GK">Goalkeeper</option>
+                                <option value="DEF">Defender (CB/LB/RB)</option>
+                                <option value="MID">Midfielder (CM/CDM/CAM)</option>
+                                <option value="ATT">Attacker (ST/LW/RW)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-small" style="width: 100%;" onclick="dispatchScout()">Dispatch Scout (€5,000)</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
+                    <h3 style="margin: 0;">Academy Roster</h3>
+                    <button class="btn-small btn-danger" onclick="releaseAllAcademyPlayers()">Release All</button>
+                </div>
+                <table id="academy-table">
+                    <thead><tr><th>Name</th><th>Age</th><th>Potential</th><th>Nat. Pos</th><th>Action</th></tr></thead>
+                    <tbody id="academy-list"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="offseason-screen" class="screen">
+        <h2 style="text-align: center;">Season Complete!</h2>
+        <div class="timer-display" id="offseason-timer">10:00</div>
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button class="btn-small" style="background:#7f8c8d;" onclick="skipTimer()">[Dev: Skip Timer]</button>
+        </div>
+        
+        <div class="dashboard-grid">
+            <div class="panel">
+                <h3>Board Review</h3>
+                <p id="board-review-text" style="font-size: 16px; line-height: 1.5;"></p>
+            </div>
+            <div class="panel">
+                <h3>Player Growth & Loan Returns</h3>
+                <ul id="growth-log" style="font-size: 14px; max-height: 200px; overflow-y: auto; padding-left: 20px;"></ul>
+            </div>
+        </div>
+
+        <h3 style="margin-top: 20px; border-bottom: 1px solid var(--panel-border); padding-bottom: 5px;">New Season Kit & Badge Setup</h3>
+        <p style="font-size: 14px; color: #7f8c8d;">Your current design has been preserved. Feel free to tweak it for the new season!</p>
+        <div class="color-group">
+            <div style="flex: 1.2; background: var(--header-bg); padding: 15px; border-radius: 5px; color: var(--text-light); display: flex; flex-direction: column; justify-content: center;">
+                <label style="text-align: center; margin-bottom:15px; font-size: 16px;">Team Kit</label>
+                <button onclick="openKitDesigner('offseason')" style="margin-top:0;">🎨 Design Your Kit</button>
+                <button onclick="clearKitDesign('offseason')" style="background-color: var(--danger); margin-top:10px;">Reset to Default</button>
+            </div>
+
+            <div style="flex: 1.2; background: var(--header-bg); padding: 15px; border-radius: 5px; color: var(--text-light);">
+                <div class="color-group" style="margin-bottom: 10px;">
+                    <div style="flex:1;">
+                        <label>Badge Shape</label>
+                        <select id="new-badge-shape" onchange="updateKitPreview('offseason')">
+                            <option value="Shield">Shield</option>
+                            <option value="Circle">Circle</option>
+                            <option value="Square">Rounded Square</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label>Initials</label>
+                        <input type="text" id="new-badge-text" value="AFC" maxlength="3" oninput="updateKitPreview('offseason')" style="text-align: center; text-transform: uppercase;">
+                    </div>
+                </div>
+                <div class="color-group" style="margin-bottom: 10px;">
+                    <div style="flex:1;"><label>Badge Color</label><input type="color" id="new-badge-color" value="#f1c40f" oninput="updateKitPreview('offseason')"></div>
+                    <div style="flex:1;"><label>Text Color</label><input type="color" id="new-badge-text-color" value="#000000" oninput="updateKitPreview('offseason')"></div>
+                </div>
+                
+                <label style="display:flex; justify-content:space-between;"><span>Size:</span> <span id="offseason-val-size">25</span></label>
+                <input type="range" id="new-badge-size" min="15" max="50" value="25" oninput="updateKitPreview('offseason')">
+
+                <label style="display:flex; justify-content:space-between; margin-top:5px;"><span>Left/Right (X):</span> <span id="setup-val-x">70</span></label>
+                <input type="range" id="new-badge-x" min="20" max="80" value="70" oninput="updateKitPreview('offseason')">
+
+                <label style="display:flex; justify-content:space-between; margin-top:5px;"><span>Up/Down (Y):</span> <span id="setup-val-y">35</span></label>
+                <input type="range" id="new-badge-y" min="20" max="80" value="35" oninput="updateKitPreview('offseason')">
+            </div>
+
+            <div style="flex: 1;" class="shirt-container">
+                <label style="font-size: 14px; color: var(--text-light); font-weight: bold;">Live Preview</label>
+                <div class="shirt-preview-wrapper">
+                    <div id="offseason-shirt-preview" class="shirt-preview">
+                        <div id="offseason-badge-preview" class="badge-overlay">AFC</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="live-match-overlay">
+        <div class="live-scoreboard">
+            <span id="lm-home">Team A</span> <span id="lm-score">0 - 0</span> <span id="lm-away">Team B</span>
+        </div>
+        <div class="live-clock" id="lm-clock">00'</div>
+        <div class="live-events" id="lm-events">
+            <div>Match kicking off...</div>
+        </div>
+        <button id="lm-close-btn" style="width: 200px; margin-top: 20px; display: none;" onclick="closeLiveMatch()">Continue to Results</button>
+    </div>
+
+    <div id="kit-designer-overlay">
+        <div id="kit-designer-modal">
+            <h3 style="margin-top:0;">🎨 Paint Your Kit</h3>
+            
+            <div class="kd-tools">
+                <input type="color" id="kd-color" value="#1abc9c" style="width:40px; height:35px; padding:0; border:none;">
+                <input type="range" id="kd-size" min="1" max="40" value="8" style="width:80px;">
+                <button class="kd-tool-btn active" id="kd-btn-brush" onclick="setKDTool('brush')">Brush</button>
+                <button class="kd-tool-btn" id="kd-btn-eraser" onclick="setKDTool('eraser')">Eraser</button>
+                <button class="kd-tool-btn" onclick="fillKDCanvas()">Fill Shirt</button>
+            </div>
+            
+            <div style="text-align: center; margin: 15px 0;">
+                <canvas id="kd-canvas" width="280" height="280"></canvas>
+            </div>
+            
+            <div style="display:flex; gap:10px;">
+                <button onclick="saveKitDesign()" style="margin-top:0;">Save Kit</button>
+                <button onclick="closeKitDesigner()" style="background: #95a5a6; margin-top:0;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- KIT DESIGNER LOGIC ---
+        let currentKitDataURL = null;
+        let kitDesignerSource = 'setup';
+        
+        let kdCanvas = document.getElementById('kd-canvas');
+        let kdCtx = kdCanvas.getContext('2d');
+        let kdDrawing = false;
+        let kdTool = 'brush';
+
+        function openKitDesigner(source) {
+            kitDesignerSource = source;
+            document.getElementById('kit-designer-overlay').style.display = 'flex';
+            setKDTool('brush');
+            
+            kdCtx.clearRect(0, 0, kdCanvas.width, kdCanvas.height);
+            if (currentKitDataURL) {
+                let img = new Image();
+                img.onload = function() {
+                    kdCtx.drawImage(img, 0, 0);
+                }
+                img.src = currentKitDataURL;
+            } else {
+                fillKDCanvas('#e74c3c');
+            }
+        }
+
+        function closeKitDesigner() {
+            document.getElementById('kit-designer-overlay').style.display = 'none';
+        }
+
+        function setKDTool(tool) {
+            kdTool = tool;
+            document.getElementById('kd-btn-brush').classList.remove('active');
+            document.getElementById('kd-btn-eraser').classList.remove('active');
+            document.getElementById('kd-btn-' + tool).classList.add('active');
+        }
+
+        function fillKDCanvas(color = null) {
+            kdCtx.globalCompositeOperation = "source-over";
+            kdCtx.fillStyle = color || document.getElementById('kd-color').value;
+            kdCtx.fillRect(0, 0, kdCanvas.width, kdCanvas.height);
+        }
+
+        function saveKitDesign() {
+            currentKitDataURL = kdCanvas.toDataURL();
+            closeKitDesigner();
+            updateKitPreview(kitDesignerSource);
+        }
+
+        function clearKitDesign(source) {
+            currentKitDataURL = null;
+            updateKitPreview(source);
+        }
+
+        function startPos(e) {
+            kdDrawing = true;
+            drawKit(e);
+        }
+        function endPos() {
+            kdDrawing = false;
+            kdCtx.beginPath();
+        }
+        function drawKit(e) {
+            if (!kdDrawing) return;
+            
+            let rect = kdCanvas.getBoundingClientRect();
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+            
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
+            let scaleX = kdCanvas.width / rect.width;
+            let scaleY = kdCanvas.height / rect.height;
+            
+            let x = (clientX - rect.left) * scaleX;
+            let y = (clientY - rect.top) * scaleY;
+
+            kdCtx.lineWidth = document.getElementById('kd-size').value;
+            kdCtx.lineCap = 'round';
+
+            if (kdTool === 'eraser') {
+                kdCtx.globalCompositeOperation = "destination-out";
+                kdCtx.strokeStyle = "rgba(0,0,0,1)";
+            } else {
+                kdCtx.globalCompositeOperation = "source-over";
+                kdCtx.strokeStyle = document.getElementById('kd-color').value;
+            }
+
+            kdCtx.lineTo(x, y);
+            kdCtx.stroke();
+            kdCtx.beginPath();
+            kdCtx.moveTo(x, y);
+        }
+
+        kdCanvas.addEventListener('mousedown', startPos);
+        kdCanvas.addEventListener('mousemove', drawKit);
+        kdCanvas.addEventListener('mouseup', endPos);
+        kdCanvas.addEventListener('mouseout', endPos);
+
+        kdCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startPos(e); }, {passive: false});
+        kdCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); drawKit(e); }, {passive: false});
+        kdCanvas.addEventListener('touchend', endPos);
+
+
+        window.onload = function() {
+            updateKitPreview('setup');
+            updateKitPreview('offseason');
+        };
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+        }
+
+        function updateKitPreview(screen) {
+            let prefix = screen === 'setup' ? '' : 'new-';
+            let preview = document.getElementById(screen + '-shirt-preview');
+            
+            if (currentKitDataURL) {
+                preview.style.backgroundImage = `url(${currentKitDataURL})`;
+                preview.style.backgroundColor = 'transparent';
+            } else {
+                preview.style.backgroundImage = 'none';
+                preview.style.backgroundColor = '#e74c3c'; // Default fallback red
+            }
+
+            let bShape = document.getElementById(prefix + 'badge-shape').value;
+            let bColor = document.getElementById(prefix + 'badge-color').value;
+            let bTextColor = document.getElementById(prefix + 'badge-text-color').value;
+            let bText = document.getElementById(prefix + 'badge-text').value.substring(0, 3).toUpperCase();
+            
+            let bSize = document.getElementById(prefix + 'badge-size').value;
+            let bX = document.getElementById(prefix + 'badge-x').value;
+            let bY = document.getElementById(prefix + 'badge-y').value;
+
+            document.getElementById(screen + '-val-size').innerText = bSize;
+            document.getElementById(screen + '-val-x').innerText = bX;
+            document.getElementById(screen + '-val-y').innerText = bY;
+
+            let badgeDiv = document.getElementById(screen + '-badge-preview');
+            badgeDiv.innerText = bText;
+            badgeDiv.style.backgroundColor = bColor;
+            badgeDiv.style.color = bTextColor;
+            badgeDiv.style.width = bSize + 'px';
+            badgeDiv.style.height = bSize + 'px';
+            badgeDiv.style.fontSize = (bSize * 0.4) + 'px';
+            badgeDiv.style.left = bX + '%';
+            badgeDiv.style.top = bY + '%';
+            badgeDiv.style.transform = 'translate(-50%, -50%)';
+
+            if (bShape === 'Circle') {
+                badgeDiv.style.borderRadius = '50%';
+                badgeDiv.style.clipPath = 'none';
+            } else if (bShape === 'Square') {
+                badgeDiv.style.borderRadius = '20%';
+                badgeDiv.style.clipPath = 'none';
+            } else if (bShape === 'Shield') {
+                badgeDiv.style.borderRadius = '0';
+                badgeDiv.style.clipPath = 'polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%)';
+            }
+        }
+
+        function applyGlobalBadge() {
+            let b = gameState.badge;
+            let badgeElements = document.querySelectorAll('.global-badge');
+            
+            badgeElements.forEach(badgeDiv => {
+                badgeDiv.style.display = 'inline-flex';
+                badgeDiv.innerText = b.text;
+                badgeDiv.style.backgroundColor = b.color;
+                badgeDiv.style.color = b.textColor;
+                
+                if (b.shape === 'Circle') {
+                    badgeDiv.style.borderRadius = '50%';
+                    badgeDiv.style.clipPath = 'none';
+                } else if (b.shape === 'Square') {
+                    badgeDiv.style.borderRadius = '20%';
+                    badgeDiv.style.clipPath = 'none';
+                } else if (b.shape === 'Shield') {
+                    badgeDiv.style.borderRadius = '0';
+                    badgeDiv.style.clipPath = 'polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%)';
+                }
+            });
+        }
+
+        // DYNAMIC REGIONAL NAME DATABASE
+        const regionalNames = {
+            "England": { 
+                first: ["Jack", "Harry", "Charlie", "Callum", "Oliver", "George", "William", "Cameron", "Declan", "Ben", "Aaron", "Kyle", "Liam", "Samuel", "Bradley"], 
+                last: ["Smith", "Jones", "Taylor", "Brown", "Davies", "Evans", "Wilson", "Thomas", "Roberts", "Johnson", "Lewis", "Walker", "Robinson", "Wood", "Thompson"] 
+            },
+            "Spain": { 
+                first: ["Mateo", "Hugo", "Martin", "Lucas", "Leo", "Daniel", "Alejandro", "Pablo", "Manuel", "Alvaro", "Adrian", "David", "Mario", "Enzo", "Diego", "Marcos"], 
+                last: ["Garcia", "Fernandez", "Gonzalez", "Rodriguez", "Lopez", "Martinez", "Sanchez", "Perez", "Martin", "Gomez", "Ruiz", "Diaz", "Hernandez", "Alvarez", "Jimenez"] 
+            },
+            "Italy": { 
+                first: ["Leonardo", "Lorenzo", "Alessandro", "Mattia", "Andrea", "Gabriele", "Matteo", "Tommaso", "Edoardo", "Riccardo", "Giuseppe", "Federico", "Francesco", "Antonio"], 
+                last: ["Rossi", "Russo", "Ferrari", "Esposito", "Bianchi", "Romano", "Colombo", "Ricci", "Marino", "Greco", "Bruno", "Gallo", "Conti", "De Luca", "Mancini"] 
+            },
+            "Germany": { 
+                first: ["Leon", "Finn", "Jonas", "Paul", "Luis", "Lukas", "Maximilian", "Felix", "Noah", "Elias", "Julian", "Max", "Tim", "Oskar", "Philipp", "Moritz"], 
+                last: ["Muller", "Schmidt", "Schneider", "Fischer", "Weber", "Meyer", "Wagner", "Becker", "Schulz", "Hoffmann", "Schafer", "Koch", "Bauer", "Richter", "Klein"] 
+            },
+            "France": { 
+                first: ["Gabriel", "Arthur", "Jules", "Leo", "Hugo", "Victor", "Martin", "Lucas", "Mathis", "Louis", "Raphael", "Mael", "Gael", "Antoine", "Clement", "Bastien"], 
+                last: ["Martin", "Bernard", "Thomas", "Petit", "Robert", "Richard", "Durand", "Dubois", "Moreau", "Laurent", "Simon", "Michel", "Lefebvre", "Leroy", "Roux"] 
+            },
+            "India": { 
+                first: ["Rohan", "Aarav", "Vivaan", "Aditya", "Vihaan", "Arjun", "Sai", "Rahul", "Kabir", "Aryan", "Krishna", "Ishaan", "Shaurya", "Atharv", "Dev", "Saket", "Koustubh", "Rithwik", "Karthik", "Chendan", "Kavin", "Akshat", "Sidd", "Siddharth", "Akosha", "Avi", "Shreyash"], 
+                last: ["Patel", "Sharma", "Singh", "Kumar", "Das", "Kaur", "Gupta", "Deshmukh", "Joshi", "Bose", "Verma", "Chauhan", "Rao", "Nair", "Reddy", "Ashtekar", "Sahoo", "Bhat", "Kaliga", "Pandhare"] 
+            },
+            "Brazil": { 
+                first: ["Miguel", "Arthur", "Heitor", "Bernardo", "Davi", "Théo", "Lorenzo", "Gabriel", "Pedro", "Lucas", "Matheus", "Gustavo", "Guilherme", "Rafael"], 
+                last: ["Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Alves", "Pereira", "Lima", "Gomes", "Costa", "Ribeiro", "Martins", "Carvalho"] 
+            },
+            "Argentina": { 
+                first: ["Mateo", "Bautista", "Juan", "Felipe", "Bruno", "Thiago", "Joaquin", "Tomas", "Santino", "Benjamin", "Gaston", "Lisandro", "Facundo"], 
+                last: ["Gonzalez", "Rodriguez", "Gomez", "Fernandez", "Lopez", "Diaz", "Martinez", "Perez", "Romero", "Sanchez", "Garcia", "Sosa", "Alvarez", "Torres"] 
+            },
+            "United States": { 
+                first: ["Liam", "Noah", "Oliver", "Elijah", "James", "William", "Benjamin", "Lucas", "Henry", "Theodore", "Jack", "Levi", "Alexander", "Jackson"], 
+                last: ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez"] 
+            },
+            "Japan": { 
+                first: ["Haruto", "Yuto", "Sota", "Yuki", "Ren", "Hinata", "Asahi", "Minato", "Itsuki", "Hiroto", "Sora", "Yamato", "Takumi", "Kaito"], 
+                last: ["Sato", "Suzuki", "Takahashi", "Tanaka", "Watanabe", "Ito", "Yamamoto", "Nakamura", "Kobayashi", "Kato", "Yoshida", "Yamada"] 
+            },
+            "South Korea": {
+                first: ["Min-jun", "Seo-jun", "Do-yun", "Ye-jun", "Si-woo", "Ji-ho", "Hajoon", "Joo-won", "Eun-woo", "Geon-woo", "Ji-hoon"],
+                last: ["Kim", "Lee", "Park", "Choi", "Jeong", "Kang", "Cho", "Yoon", "Jang", "Lim", "Han", "Oh", "Seo", "Shin"]
+            },
+            "Nigeria": {
+                first: ["Ahmed", "Victor", "Emmanuel", "Samuel", "John", "David", "Peter", "Daniel", "Paul", "Michael", "Chuks", "Tunde"],
+                last: ["Ibrahim", "Abubakar", "Musa", "Abdullahi", "Okafor", "Adeyemi", "Bello", "Sanusi", "Lawal", "Odegbami", "Kanu", "Onyekuru"]
+            },
+            
+            // Fallbacks by continent
+            "Africa_Fallback": { 
+                first: ["Kwame", "Tariq", "Amadou", "Sekou", "Oumar", "Musa", "Kofi", "Samuel", "Emmanuel", "Abdel", "Ibrahim", "Youssef", "Kelechi"], 
+                last: ["Mensah", "Diallo", "Traore", "Keita", "Toure", "Diop", "Ndiaye", "Okafor", "Adeyemi", "Gyan", "Kone", "Cisse", "Sow"] 
+            },
+            "Asia_Fallback": { 
+                first: ["Wei", "Min-jun", "Ren", "Arif", "Hassan", "Ali", "Yousef", "Ji-hoon", "Mohammed", "Ahmad", "Omar", "Zayd", "Hiro"], 
+                last: ["Chen", "Lee", "Kim", "Wong", "Rahman", "Ahmad", "Nguyen", "Tran", "Khan", "Al-Farsi", "Sato", "Suzuki", "Wang"] 
+            },
+            "Europe_Fallback": { 
+                first: ["Lars", "Sven", "Niels", "Ivan", "Igor", "Piotr", "Jan", "Michal", "Artem", "Alexei", "Stefan", "Goran", "Nikola", "Bjorn"], 
+                last: ["Smirnov", "Novak", "Hansen", "Larsen", "Kowalski", "Jansen", "Popov", "Horvath", "Ilanov", "Ivanov", "Petersen", "Andersen"] 
+            },
+            "South America_Fallback": { 
+                first: ["Carlos", "Luis", "Jorge", "Pedro", "Javier", "Diego", "Miguel", "Joao", "Ricardo", "Fernando", "Esteban"], 
+                last: ["Vargas", "Morales", "Rojas", "Cruz", "Navarro", "Mendoza", "Castillo", "Rios", "Silva", "Guzman", "Ortiz"] 
+            },
+            "North America_Fallback": { 
+                first: ["Carlos", "Luis", "Liam", "Noah", "Ethan", "Jackson", "Mateo", "Sebastian", "Jack", "Owen"], 
+                last: ["Smith", "Garcia", "Martinez", "Johnson", "Tremblay", "Gagnon", "Roy", "Cote", "Bouchard", "Gauthier"] 
+            },
+            "Oceania_Fallback": { 
+                first: ["Jack", "Lachlan", "Oliver", "William", "Noah", "James", "Thomas", "Elijah", "Hudson", "Hunter"], 
+                last: ["Smith", "Wilson", "Williams", "Brown", "Taylor", "Jones", "Anderson", "Davies", "Thomas", "Evans"] 
+            }
+        };
+
+        const clubGenerators = {
+            "England": {
+                cities: ["Bristol", "Chester", "York", "Derby", "Lincoln", "Preston", "Newport", "Barrow", "Halifax", "Dover", "Wrexham", "Truro", "Yeovil", "Dulwich", "Chorley"],
+                suffixes: [" City", " United", " FC", " Rovers", " Athletic", " Town", " Wanderers", " Sporting", " Albion"]
+            },
+            "Spain": {
+                cities: ["Marbella", "Toledo", "Ibiza", "Ceuta", "Merida", "Avila", "Sestao", "Pontevedra", "Zamora", "Lorca", "Alzira", "Murcia"],
+                suffixes: [" CF", " CD", " UD", " SAD", " Balompié", " Racing", " Atlético", " Deportivo"]
+            },
+            "Italy": {
+                cities: ["Siena", "Arezzo", "Livorno", "Piacenza", "Varese", "Prato", "Treviso", "Trapani", "Siracusa", "Ravenna", "Campobasso", "Sanremo"],
+                suffixes: [" Calcio", " FC", " AC", " US", " AS", " Virtus", " SSD", " Sporting"]
+            },
+            "Germany": {
+                cities: ["Lubeck", "Aachen", "Cottbus", "Offenbach", "Kassel", "Jena", "Homburg", "Erfurt", "Trier", "Wuppertal", "Oberhausen", "Meppen"],
+                suffixes: [" SV", " FC", " Kickers", " SC", " VfB", " SpVgg", " Eintracht", " 04", " 93", " 1899"] 
+            },
+            "France": {
+                cities: ["Cannes", "Toulon", "Sedan", "Rouen", "Boulogne", "Bourg", "Sannois", "Fleury", "Chambly", "Grasse", "Hyeres", "Belfort", "Colmar"],
+                suffixes: [" FC", " SC", " Olympique", " Racing", " AS", " US", " Stade", " AFC"]
+            }
+        };
+
+        function generateClubName(country) {
+            let gen = clubGenerators[country] || clubGenerators["England"];
+            let city = gen.cities[Math.floor(Math.random() * gen.cities.length)];
+            let suffix = gen.suffixes[Math.floor(Math.random() * gen.suffixes.length)];
+            
+            if (country === "Germany" && Math.random() > 0.5) {
+                let prefixes = ["SV ", "FC ", "VfB ", "SC ", "SpVgg "];
+                return prefixes[Math.floor(Math.random() * prefixes.length)] + city;
+            }
+            if (country === "Spain" && Math.random() > 0.6) {
+                let prefixes = ["Real ", "Atlético ", "UD ", "CD "];
+                return prefixes[Math.floor(Math.random() * prefixes.length)] + city;
+            }
+            if (country === "Italy" && Math.random() > 0.7) {
+                let prefixes = ["AS ", "US ", "AC "];
+                return prefixes[Math.floor(Math.random() * prefixes.length)] + city;
+            }
+
+            return city + suffix;
+        }
+
+        const allPositions = ['GK', 'RB', 'CB', 'LB', 'CDM', 'CM', 'CAM', 'RM', 'LM', 'RW', 'LW', 'ST'];
+        
+        const posMap = {
+            'ANY': allPositions, 'ALL': allPositions,
+            'GK': ['GK'], 'DEF': ['CB', 'LB', 'RB', 'LWB', 'RWB'],
+            'CB': ['CB'], 'LB': ['LB', 'LWB'], 'RB': ['RB', 'RWB'],
+            'MID': ['CM', 'CDM', 'CAM', 'RM', 'LM'],
+            'CM': ['CM', 'CDM', 'CAM'], 'LM': ['LM', 'LW'], 'RM': ['RM', 'RW'],
+            'ATT': ['ST', 'LW', 'RW', 'CF', 'LF', 'RF'], 'ST': ['ST', 'CF', 'LF', 'RF']
+        };
+
+        const continentData = {
+            "Africa": ["Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon", "Central African Republic", "Chad", "Comoros", "Democratic Republic of the Congo", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Ivory Coast", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Republic of the Congo", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe"],
+            "Asia": ["Afghanistan", "Armenia", "Azerbaijan", "Bahrain", "Bangladesh", "Bhutan", "Brunei", "Cambodia", "China", "Cyprus", "Georgia", "India", "Indonesia", "Iran", "Iraq", "Israel", "Japan", "Jordan", "Kazakhstan", "Kuwait", "Kyrgyzstan", "Laos", "Lebanon", "Malaysia", "Maldives", "Mongolia", "Myanmar", "Nepal", "North Korea", "Oman", "Pakistan", "Palestine", "Philippines", "Qatar", "Saudi Arabia", "Singapore", "South Korea", "Sri Lanka", "Syria", "Taiwan", "Tajikistan", "Thailand", "Timor-Leste", "Turkey", "Turkmenistan", "United Arab Emirates", "Uzbekistan", "Vietnam", "Yemen"],
+            "Europe": ["Albania", "Andorra", "Austria", "Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia", "Finland", "France", "Georgia", "Germany", "Greece", "Hungary", "Iceland", "Ireland", "Italy", "Kosovo", "Latvia", "Liechtenstein", "Lithuania", "Luxembourg", "Malta", "Moldova", "Monaco", "Montenegro", "Netherlands", "North Macedonia", "Norway", "Poland", "Portugal", "Romania", "Russia", "San Marino", "Serbia", "Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland", "Turkey", "Ukraine", "United Kingdom", "Vatican City"],
+            "North America": ["Antigua and Barbuda", "Bahamas", "Barbados", "Belize", "Canada", "Costa Rica", "Cuba", "Dominica", "Dominican Republic", "El Salvador", "Grenada", "Guatemala", "Haiti", "Honduras", "Jamaica", "Mexico", "Nicaragua", "Panama", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Trinidad and Tobago", "United States"],
+            "South America": ["Argentina", "Bolivia", "Brazil", "Chile", "Colombia", "Ecuador", "Guyana", "Paraguay", "Peru", "Suriname", "Uruguay", "Venezuela"],
+            "Oceania": ["Australia", "Fiji", "Kiribati", "Marshall Islands", "Micronesia", "Nauru", "New Zealand", "Palau", "Papua New Guinea", "Samoa", "Solomon Islands", "Tonga", "Tuvalu", "Vanuatu"]
+        };
+
+        const leagueStructure = {
+            "England": [
+                { tier: 1, name: "Premier League", groups: 1, teamsPerGroup: 20, autoPromo: 0, rel: 3, matches: 38 },
+                { tier: 2, name: "Championship", groups: 1, teamsPerGroup: 24, autoPromo: 2, playoff: [3,4,5,6], rel: 3, matches: 46 },
+                { tier: 3, name: "League One", groups: 1, teamsPerGroup: 24, autoPromo: 2, playoff: [3,4,5,6], rel: 4, matches: 46 },
+                { tier: 4, name: "League Two", groups: 1, teamsPerGroup: 24, autoPromo: 3, playoff: [4,5,6,7], rel: 2, matches: 46 }
+            ],
+            "Spain": [
+                { tier: 1, name: "La Liga", groups: 1, teamsPerGroup: 20, autoPromo: 0, rel: 3, matches: 38 },
+                { tier: 2, name: "Segunda División", groups: 1, teamsPerGroup: 22, autoPromo: 2, playoff: [3,4,5,6], rel: 4, matches: 42 },
+                { tier: 3, name: "Primera Federación", groups: 2, teamsPerGroup: 20, autoPromo: 1, playoff: [2,3,4,5], rel: 5, matches: 38 },
+                { tier: 4, name: "Segunda Federación", groups: 5, teamsPerGroup: 18, autoPromo: 1, playoff: [], rel: 5, matches: 34 }
+            ],
+            "Italy": [
+                { tier: 1, name: "Serie A", groups: 1, teamsPerGroup: 20, autoPromo: 0, rel: 3, matches: 38 },
+                { tier: 2, name: "Serie B", groups: 1, teamsPerGroup: 20, autoPromo: 2, playoff: [3,4,5,6], rel: 4, matches: 38 },
+                { tier: 3, name: "Serie C", groups: 3, teamsPerGroup: 20, autoPromo: 1, playoff: [2,3,4], rel: 3, matches: 38 },
+                { tier: 4, name: "Serie D", groups: 9, teamsPerGroup: 18, autoPromo: 1, playoff: [], rel: 4, matches: 34 }
+            ],
+            "Germany": [
+                { tier: 1, name: "Bundesliga", groups: 1, teamsPerGroup: 18, autoPromo: 0, rel: 3, matches: 34 },
+                { tier: 2, name: "2. Bundesliga", groups: 1, teamsPerGroup: 18, autoPromo: 2, playoff: [3], rel: 3, matches: 34 },
+                { tier: 3, name: "3. Liga", groups: 1, teamsPerGroup: 20, autoPromo: 2, playoff: [3], rel: 4, matches: 38 },
+                { tier: 4, name: "Regionalliga", groups: 5, teamsPerGroup: 18, autoPromo: 1, playoff: [], rel: 3, matches: 34 }
+            ],
+            "France": [
+                { tier: 1, name: "Ligue 1", groups: 1, teamsPerGroup: 18, autoPromo: 0, rel: 3, matches: 34 },
+                { tier: 2, name: "Ligue 2", groups: 1, teamsPerGroup: 18, autoPromo: 2, playoff: [3], rel: 2, matches: 34 },
+                { tier: 3, name: "Championnat National", groups: 1, teamsPerGroup: 18, autoPromo: 2, playoff: [], rel: 6, matches: 34 },
+                { tier: 4, name: "National 2", groups: 3, teamsPerGroup: 16, autoPromo: 1, playoff: [], rel: 4, matches: 30 }
+            ]
+        };
+
+        const cupNames = { "England": "FA Cup", "Spain": "Copa del Rey", "Italy": "Coppa Italia", "Germany": "DFB-Pokal", "France": "Coupe de France" };
+        const cupRounds = ["Round 1", "Round 2", "Round of 16", "Quarter-Final", "Semi-Final", "Final"];
+        const cupSchedule = [4, 8, 12, 16, 20, 24]; 
+        const cup2Schedule = [2, 6, 10, 14, 18, 22]; 
+
+        const teamDatabase = {
+            "England": {
+                1: ["Arsenal", "Aston Villa", "Bournemouth", "Brentford", "Brighton", "Chelsea", "Crystal Palace", "Everton", "Fulham", "Ipswich Town", "Leicester City", "Liverpool", "Manchester City", "Manchester United", "Newcastle United", "Nottingham Forest", "Southampton", "Tottenham Hotspur", "West Ham United", "Wolverhampton"], 
+                2: ["Burnley", "Luton Town", "Sheffield Utd", "Leeds United", "West Brom", "Norwich City", "Hull City", "Middlesbrough", "Coventry City", "Preston", "Bristol City", "Cardiff City", "Millwall", "Swansea City", "Watford", "Sunderland", "Sheff Wed", "Plymouth", "Blackburn", "QPR", "Stoke City", "Portsmouth", "Derby County", "Oxford United"],
+                3: ["Bolton", "Peterborough", "Barnsley", "Lincoln City", "Blackpool", "Stevenage", "Wycombe", "Leyton Orient", "Charlton", "Reading", "Bristol Rovers", "Wigan", "Northampton", "Exeter City", "Burton Albion", "Cambridge Utd", "Shrewsbury", "Stockport", "Wrexham", "Mansfield Town", "Crawley Town", "Rotherham", "Huddersfield", "Birmingham City"],
+                4: ["MK Dons", "Doncaster", "Bradford City", "Barrow", "Crewe Alex", "Walsall", "Harrogate", "AFC Wimbledon", "Morecambe", "Accrington", "Newport County", "Tranmere", "Swindon Town", "Salford City", "Grimsby Town", "Colchester", "Chesterfield", "Bromley", "Carlisle Utd", "Port Vale", "Fleetwood", "Cheltenham", "Gillingham"]
+            },
+            "Spain": {
+                1: ["Real Madrid", "Barcelona", "Atletico Madrid", "Girona", "Athletic Club", "Real Sociedad", "Real Betis", "Villarreal", "Valencia", "Alaves", "Osasuna", "Getafe", "Celta Vigo", "Sevilla", "Mallorca", "Las Palmas", "Rayo Vallecano", "Leganes", "Valladolid", "Espanyol"],
+                2: ["Almeria", "Granada", "Cadiz", "Eibar", "Racing Santander", "Sporting Gijon", "Oviedo", "Elche", "Burgos", "Racing Ferrol", "Zaragoza", "Tenerife", "Levante", "Cartagena", "Mirandes", "Eldense", "Huesca", "Deportivo La Coruna", "Castellon", "Cordoba", "Malaga", "Albacete"],
+                3: ["Gimnastic", "Ponferradina", "Cultural Leonesa", "Unionistas", "Arenteiro", "Real Union", "Sestao River", "Tarazona", "Lugo", "Fuenlabrada", "Osasuna B", "Celta B", "Barcelona B", "Real Sociedad B", "Ibiza", "Ceuta", "Murcia", "Recreativo", "Antequera", "Intercity"],
+                4: ["CD Numancia", "Lleida Esportiu", "Terrassa FC", "Pontevedra CF", "Real Avilés", "Zamora CF", "Gimnástica", "Compostela", "CD Badajoz", "UD Melilla", "Mar Menor", "CD Estepona", "Águilas FC", "Yeclano", "Orihuela CF", "Europa FC", "Hércules CF", "Aviles"]
+            },
+            "Italy": {
+                1: ["Inter", "AC Milan", "Juventus", "Atalanta", "Bologna", "AS Roma", "Lazio", "Fiorentina", "Torino", "Napoli", "Genoa", "Monza", "Hellas Verona", "Lecce", "Udinese", "Cagliari", "Empoli", "Como", "Parma", "Venezia"],
+                2: ["Frosinone", "Sassuolo", "Salernitana", "Cremonese", "Catanzaro", "Palermo", "Sampdoria", "Brescia", "Sudtirol", "Reggiana", "Pisa", "Cittadella", "Spezia", "Bari", "Cosenza", "Modena", "Mantova", "Cesena", "Juve Stabia", "Carrarese"],
+                3: ["Padova", "Vicenza", "Triestina", "Atalanta U23", "Legnago", "Giana Erminio", "Pro Vercelli", "Lumezzane", "Trento", "Virtus Verona", "Albinoleffe", "Renate", "Novara", "Fiorenzuola", "Pergolettese", "Arzignano", "Pro Patria", "Alessandria", "Spal", "Feralpisalo"],
+                4: ["Livorno", "Piacenza", "Varese", "Sambenedettese", "Cavese", "Sanremo", "Trapani", "Siracusa", "Ravenna", "Campobasso", "Fidelis Andria", "Gelbison", "Grosseto", "Pistoiese", "Follonica", "Cjarlins", "Dolomiti", "Prato"]
+            },
+            "Germany": {
+                1: ["Bayer Leverkusen", "VfB Stuttgart", "Bayern Munich", "RB Leipzig", "Borussia Dortmund", "Eintracht Frankfurt", "Hoffenheim", "Heidenheim", "Werder Bremen", "Freiburg", "Augsburg", "Wolfsburg", "Mainz 05", "Borussia M'gladbach", "Union Berlin", "Bochum", "St. Pauli", "Holstein Kiel"],
+                2: ["FC Koln", "Darmstadt 98", "Fortuna Dusseldorf", "Hamburger SV", "Karlsruher SC", "Hannover 96", "SC Paderborn", "Greuther Furth", "Hertha BSC", "Schalke 04", "Elversberg", "Nurnberg", "Kaiserslautern", "Magdeburg", "Eintracht Braunschweig", "Ulm", "Preussen Munster", "Jahn Regensburg"],
+                3: ["Hansa Rostock", "VfL Osnabruck", "Wehen Wiesbaden", "Dynamo Dresden", "Saarbrucken", "Erzgebirge Aue", "Rot-Weiss Essen", "Sandhausen", "Unterhaching", "Ingolstadt 04", "Borussia Dortmund II", "Verl", "Viktoria Koln", "Arminia Bielefeld", "1860 Munich", "Waldhof Mannheim", "Alemannia Aachen", "Energie Cottbus", "Hannover 96 II", "Stuttgart II"],
+                4: ["Wuppertaler SV", "Rot-Weiß Oberhausen", "Fortuna Köln", "Kickers Offenbach", "FSV Frankfurt", "Stuttgarter Kickers", "FC Homburg", "Carl Zeiss Jena", "BFC Dynamo", "Lokomotive Leipzig", "Chemnitzer FC", "SV Babelsberg", "Meppen", "Weiche Flensburg", "Phönix Lübeck", "Kassel", "SGV Freiberg", "Halle"]
+            },
+            "France": {
+                1: ["PSG", "Monaco", "Brest", "Lille", "Nice", "Lyon", "Lens", "Marseille", "Reims", "Rennes", "Toulouse", "Montpellier", "Strasbourg", "Nantes", "Le Havre", "Auxerre", "Angers", "Saint-Etienne"],
+                2: ["Metz", "Lorient", "Clermont", "Rodez", "Paris FC", "Caen", "Laval", "Amiens", "Guingamp", "Pau", "Grenoble", "Bordeaux", "Bastia", "Annecy", "Ajaccio", "Dunkerque", "Red Star", "Martigues"],
+                3: ["Troyes", "Quevilly-Rouen", "Concarneau", "Niort", "Dijon", "Le Mans", "Nancy", "Rouen", "Sochaux", "Versailles", "Orleans", "Nimes", "Chateauroux", "Bourg-en-Bresse", "Boulogne", "Aubagne", "Paris 13", "Bourg-Peronnas"],
+                4: ["AS Cannes", "SC Toulon", "Racing CFF", "FC Fleury", "FC Chambly", "Stade Briochin", "Andrézieux", "Jura Sud", "Bergerac", "Trélissac FC", "Les Herbiers", "Wasquehal", "Grasse", "Hyeres", "Jura Dolois", "Sedan"] 
+            }
+        };
+
+        const tacticalDatabase = {
+            "4-4-2-Balanced": { lines: [4, 4, 2], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'ST', 'ST'] },
+            "4-4-2-Defensive": { lines: [4, 4, 2], pos: ['GK', 'LWB', 'CB', 'CB', 'RWB', 'LM', 'CDM', 'CDM', 'RM', 'ST', 'ST'] },
+            "4-3-3-Attack": { lines: [4, 2, 1, 3], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'CM', 'CM', 'CAM', 'LW', 'ST', 'RW'] },
+            "4-3-3-Defend": { lines: [4, 1, 2, 3], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'CDM', 'CM', 'CM', 'LW', 'ST', 'RW'] },
+            "4-3-3-Balanced": { lines: [4, 3, 3], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'CM', 'CM', 'CM', 'LW', 'ST', 'RW'] },
+            "4-3-1-2": { lines: [4, 3, 1, 2], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'CM', 'CM', 'CM', 'CAM', 'ST', 'ST'] },
+            "4-1-2-1-2-Narrow": { lines: [4, 1, 2, 1, 2], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'CDM', 'CM', 'CM', 'CAM', 'ST', 'ST'] },
+            "4-1-2-1-2-Wide": { lines: [4, 1, 2, 1, 2], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'CDM', 'LM', 'RM', 'CAM', 'ST', 'ST'] },
+            "4-2-1-3": { lines: [4, 2, 1, 3], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'CDM', 'CDM', 'CAM', 'LW', 'ST', 'RW'] },
+            "3-4-2-1": { lines: [3, 4, 2, 1], pos: ['GK', 'CB', 'CB', 'CB', 'LM', 'CM', 'CM', 'RM', 'CAM', 'CAM', 'ST'] },
+            "4-2-3-1": { lines: [4, 2, 3, 1], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'CDM', 'CDM', 'LM', 'CAM', 'RM', 'ST'] },
+            "4-1-4-1": { lines: [4, 1, 4, 1], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'CDM', 'LM', 'CM', 'CM', 'RM', 'ST'] },
+            "4-4-1-1": { lines: [4, 4, 1, 1], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'CF', 'ST'] },
+            "4-3-2-1": { lines: [4, 3, 2, 1], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'CM', 'CM', 'CM', 'LF', 'RF', 'ST'] },
+            "5-4-1": { lines: [5, 4, 1], pos: ['GK', 'LWB', 'CB', 'CB', 'CB', 'RWB', 'LM', 'CM', 'CM', 'RM', 'ST'] },
+            "4-5-1": { lines: [4, 5, 1], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'CM', 'RM', 'ST'] },
+            "5-3-2": { lines: [5, 3, 2], pos: ['GK', 'LWB', 'CB', 'CB', 'CB', 'RWB', 'CM', 'CM', 'CM', 'ST', 'ST'] },
+            "5-2-3": { lines: [5, 2, 3], pos: ['GK', 'LWB', 'CB', 'CB', 'CB', 'RWB', 'CM', 'CM', 'LW', 'ST', 'RW'] },
+            "3-4-3": { lines: [3, 4, 3], pos: ['GK', 'CB', 'CB', 'CB', 'LM', 'CM', 'CM', 'RM', 'LW', 'ST', 'RW'] },
+            "3-5-2": { lines: [3, 5, 2], pos: ['GK', 'CB', 'CB', 'CB', 'LM', 'CDM', 'CM', 'CDM', 'RM', 'ST', 'ST'] },
+            "3-5-1-1": { lines: [3, 5, 1, 1], pos: ['GK', 'CB', 'CB', 'CB', 'LM', 'CM', 'CM', 'CM', 'RM', 'CF', 'ST'] },
+            "3-4-1-2": { lines: [3, 4, 1, 2], pos: ['GK', 'CB', 'CB', 'CB', 'LM', 'CM', 'CM', 'RM', 'CAM', 'ST', 'ST'] },
+            "4-1-3-2": { lines: [4, 1, 3, 2], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'CDM', 'LM', 'CM', 'RM', 'ST', 'ST'] },
+            "4-2-2-2": { lines: [4, 2, 2, 2], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'CDM', 'CDM', 'LAM', 'RAM', 'ST', 'ST'] },
+            "4-2-4": { lines: [4, 2, 4], pos: ['GK', 'LB', 'CB', 'CB', 'RB', 'CM', 'CM', 'LW', 'ST', 'ST', 'RW'] }
+        };
+
+        const stadiumDetails = {
+            "Small Local Ground": { cap: 4000, cost: 50000 },
+            "Mid-Sized Arena": { cap: 15000, cost: 200000 },
+            "Classic Park": { cap: 30000, cost: 500000 },
+            "Modern Stadium": { cap: 50000, cost: 1200000 },
+            "Massive Bowl": { cap: 80000, cost: 2500000 }
+        };
+
+        // --- GAME STATE ---
+        const gameState = {
+            manager: '', managerType: 'Custom', club: '', country: '', stadium: '', stadiumType: '', stadiumCap: 0,
+            kitURL: null, 
+            badge: { shape: 'Shield', color: '#f1c40f', textColor: '#000000', text: 'AFC', x: 70, y: 35, size: 25 },
+            seasonYear: 2025, tier: 4, groupIndex: 0, budget: 3000000, sponsorIndex: 0,
+            matchweek: 0, totalMatchweeks: 0, seasonTrainings: 0,
+            squad: [], loanedOut: [], academy: [], leagueTable: [],
+            availableScouts: [], hiredScout: null,
+            worldLeagues: { 1: [], 2: [], 3: [], 4: [] },
+            leagueFixtures: [],
+            nextFixtureType: 'League', currentOpponent: '', isHomeGame: true,
+            cupRoundIndex: 0, cupStatus: 'Active',
+            cup2RoundIndex: 0, cup2Status: 'Inactive',
+            selectedPlayerIndex: null,
+            playersToRetire: [],
+            setPieces: { captain: '', pen: '', fkC: '', fkL: '', fkR: '', fkLong: '', cornerL: '', cornerR: '' }
+        };
+
+        function formatCurrency(num) { return '€' + num.toLocaleString(); }
+
+        function getRandomCountry() {
+            const continents = Object.keys(continentData);
+            const randCont = continents[Math.floor(Math.random() * continents.length)];
+            const countries = continentData[randCont];
+            return countries[Math.floor(Math.random() * countries.length)];
+        }
+
+        function randomName(countryName = null) {
+            if (!countryName) countryName = gameState.country || "England";
+            
+            let pool = regionalNames[countryName];
+            
+            if (!pool) {
+                let targetContinent = "Europe";
+                for (let cont in continentData) {
+                    if (continentData[cont].includes(countryName)) {
+                        targetContinent = cont;
+                        break;
+                    }
+                }
+                pool = regionalNames[targetContinent + "_Fallback"] || regionalNames["Europe_Fallback"];
+            }
+
+            const fName = pool.first[Math.floor(Math.random() * pool.first.length)];
+            const lName = pool.last[Math.floor(Math.random() * pool.last.length)];
+            return `${fName} ${lName}`;
+        }
+
+        function isTransferWindowOpen() {
+            if (gameState.totalMatchweeks === 0) return true;
+            let mw = gameState.matchweek;
+            let total = gameState.totalMatchweeks;
+            let mid = Math.floor(total / 2);
+            if (mw <= 3 || mw >= total) return true;
+            if (mw >= mid - 2 && mw <= mid + 1) return true;
+            return false;
+        }
+
+        function startGame() {
+            gameState.manager = document.getElementById('manager-name').value || "The Boss";
+            gameState.managerType = document.getElementById('manager-type').value;
+            gameState.club = document.getElementById('club-name').value || "FC Unknown";
+            gameState.country = document.getElementById('country-select').value;
+            gameState.stadium = document.getElementById('stadium-name').value || "Town Park";
+            gameState.stadiumType = document.getElementById('stadium-type').value;
+            
+            gameState.kitURL = currentKitDataURL;
+
+            gameState.badge.shape = document.getElementById('badge-shape').value;
+            gameState.badge.text = document.getElementById('badge-text').value.substring(0, 3).toUpperCase();
+            gameState.badge.color = document.getElementById('badge-color').value;
+            gameState.badge.textColor = document.getElementById('badge-text-color').value;
+            gameState.badge.size = document.getElementById('badge-size').value;
+            gameState.badge.x = document.getElementById('badge-x').value;
+            gameState.badge.y = document.getElementById('badge-y').value;
+            
+            let stData = stadiumDetails[gameState.stadiumType];
+            
+            if (gameState.managerType === 'Economist') {
+                gameState.budget += 500000;
+            }
+
+            if (gameState.budget < stData.cost) {
+                alert("You cannot afford this stadium! Please select a cheaper option.");
+                return;
+            }
+            gameState.budget -= stData.cost;
+            gameState.stadiumCap = stData.cap;
+
+            for(let t=1; t<=4; t++) {
+                let rules = leagueStructure[gameState.country].find(l => l.tier === t);
+                let numGroups = rules.groups;
+                let teamsPerGroup = rules.teamsPerGroup;
+                gameState.worldLeagues[t] = [];
+                
+                let baseTeamsList = teamDatabase[gameState.country][t] ? [...teamDatabase[gameState.country][t]] : [];
+                
+                for(let g=0; g<numGroups; g++) {
+                    let groupTeams = [];
+                    while(groupTeams.length < teamsPerGroup) {
+                        if (baseTeamsList.length > 0) {
+                            groupTeams.push(baseTeamsList.shift());
+                        } else {
+                            groupTeams.push(generateClubName(gameState.country));
+                        }
+                    }
+                    gameState.worldLeagues[t].push(groupTeams);
+                }
+            }
+            gameState.worldLeagues[4][0].pop();
+            gameState.worldLeagues[4][0].push(gameState.club);
+            gameState.groupIndex = 0;
+            
+            initSeason();
+
+            document.getElementById('display-manager').innerText = gameState.manager;
+            document.getElementById('display-club').innerText = gameState.club;
+            
+            document.getElementById('manager-info').style.display = 'block';
+            document.getElementById('season-display').style.display = 'inline';
+            
+            applyGlobalBadge();
+
+            generateSquad();
+            searchScouts();
+            updateCountryDropdown();
+            switchScreen('main-game');
+        }
+
+        function initSeason() {
+            gameState.matchweek = 0;
+            gameState.cupRoundIndex = 0;
+            gameState.cupStatus = 'Active';
+            gameState.cup2RoundIndex = 0;
+            gameState.cup2Status = (gameState.country === "England") ? 'Active' : 'Inactive';
+            
+            gameState.sponsorIndex = 4 - gameState.tier; 
+            const currentLeague = leagueStructure[gameState.country].find(l => l.tier === gameState.tier);
+            
+            gameState.totalMatchweeks = currentLeague.matches; 
+
+            document.getElementById('season-year').innerText = `${gameState.seasonYear}/${(gameState.seasonYear+1).toString().slice(2)}`;
+            document.getElementById('total-matchweeks').innerText = gameState.totalMatchweeks;
+            document.getElementById('matchweek-num').innerText = 0;
+            
+            let lNameText = currentLeague.name;
+            if(currentLeague.groups > 1) {
+                lNameText += ` (Group ${gameState.groupIndex + 1})`;
+            }
+            document.getElementById('league-name').innerText = lNameText;
+            
+            let rulesTxt = `Auto Promo: ${currentLeague.autoPromo}`;
+            if(currentLeague.playoff && currentLeague.playoff.length > 0) rulesTxt += ` | Play-offs: ${currentLeague.playoff[0]} to ${currentLeague.playoff[currentLeague.playoff.length-1]}`;
+            
+            rulesTxt += ` | Relegation: ${currentLeague.rel}`;
+            if (currentLeague.groups > 1) {
+                rulesTxt += ` (Per Group)`;
+            }
+
+            document.getElementById('relegation-rules').innerText = rulesTxt;
+            
+            updateHeaderFinancials();
+            initLeagueTable();
+            initLeagueFixtures();
+            determineNextFixture();
+            updateTransferWindowUI();
+            renderTopScorers();
+            
+            const freeBody = document.getElementById('free-agent-list');
+            freeBody.innerHTML = '';
+            for(let i=0; i<4; i++) {
+                let naturalPosition = allPositions[Math.floor(Math.random() * allPositions.length)];
+                let cost = Math.floor(Math.random()*2)*1000 + 1000; 
+                let ovr = Math.floor(Math.random()*8) + 52;
+                
+                let randCountry = Math.random() > 0.5 ? gameState.country : getRandomCountry();
+                let pName = randomName(randCountry);
+
+                freeBody.innerHTML += `<tr><td>${pName}</td><td>${naturalPosition}</td><td>${ovr}</td><td>${formatCurrency(cost)}/wk</td><td><button class="btn-small" onclick="buyPlayer(${cost}, this, '${pName}', '${naturalPosition}', ${ovr}, true)">Sign</button></td></tr>`;
+            }
+            renderSellTable();
+        }
+
+        function updateHeaderFinancials() {
+            document.getElementById('display-budget').innerText = formatCurrency(gameState.budget);
+            document.getElementById('transfer-budget-display').innerText = formatCurrency(gameState.budget);
+            document.getElementById('display-stadium-cap').innerText = gameState.stadiumCap.toLocaleString();
+        }
+
+        function generateSquad() {
+            gameState.squad = [];
+            const formKey = document.getElementById('formation-select').value;
+            const newPositions = tacticalDatabase[formKey].pos;
+
+            let ovrBoost = gameState.managerType === 'Tactician' ? 2 : 0;
+
+            for(let i=0; i<11; i++) {
+                gameState.squad.push({
+                    name: randomName(gameState.country), pos: newPositions[i], natPos: newPositions[i], 
+                    ovr: Math.floor(Math.random() * (70 - 55 + 1)) + 55 + ovrBoost,
+                    isStarting: true, goals: 0, contract: Math.floor(Math.random() * 3) + 1,
+                    atkBias: Math.floor(Math.random() * 11) - 5,
+                    status: 'Active', statusDuration: 0, age: Math.floor(Math.random() * (32 - 22 + 1)) + 22
+                });
+            }
+            for(let i=0; i<7; i++) {
+                let naturalPosition = i < 1 ? 'GK' : allPositions[Math.floor(Math.random() * allPositions.length)];
+                gameState.squad.push({
+                    name: randomName(gameState.country), pos: 'SUB', natPos: naturalPosition, 
+                    ovr: Math.floor(Math.random() * (68 - 50 + 1)) + 50 + ovrBoost,
+                    isStarting: false, goals: 0, contract: Math.floor(Math.random() * 3) + 1,
+                    atkBias: Math.floor(Math.random() * 11) - 5,
+                    status: 'Active', statusDuration: 0, age: Math.floor(Math.random() * (30 - 20 + 1)) + 20
+                });
+            }
+            renderSquadTable();
+            renderSetPieces();
+            renderPitch();
+            renderSellTable();
+        }
+
+        function changeFormation() {
+            const formKey = document.getElementById('formation-select').value;
+            const newPositions = tacticalDatabase[formKey].pos;
+
+            let starterCount = 0;
+            for(let i = 0; i < gameState.squad.length; i++) {
+                if(starterCount < 11) {
+                    gameState.squad[i].pos = newPositions[starterCount];
+                    gameState.squad[i].isStarting = true;
+                    starterCount++;
+                } else {
+                    gameState.squad[i].pos = 'SUB';
+                    gameState.squad[i].isStarting = false;
+                }
+            }
+            gameState.selectedPlayerIndex = null;
+            renderSquadTable();
+            renderSetPieces();
+            renderPitch();
+        }
+
+        function selectPlayer(index) {
+            if(gameState.selectedPlayerIndex === null) {
+                gameState.selectedPlayerIndex = index;
+                renderSquadTable(); 
+            } else {
+                let p1 = gameState.squad[gameState.selectedPlayerIndex];
+                let p2 = gameState.squad[index];
+                
+                let isP1MovingToStart = index < 11;
+                let isP2MovingToStart = gameState.selectedPlayerIndex < 11;
+
+                if ((isP1MovingToStart && p1.status !== 'Active') || (isP2MovingToStart && p2.status !== 'Active')) {
+                    alert("You cannot place an unavailable player in the starting lineup!");
+                    gameState.selectedPlayerIndex = null;
+                    renderSquadTable();
+                    return;
+                }
+
+                let temp = gameState.squad[gameState.selectedPlayerIndex];
+                gameState.squad[gameState.selectedPlayerIndex] = gameState.squad[index];
+                gameState.squad[index] = temp;
+                gameState.selectedPlayerIndex = null;
+                changeFormation(); 
+            }
+        }
+
+        function trainPlayer() {
+            if(gameState.selectedPlayerIndex === null) {
+                alert("Please click on a player from the Squad List to select them first.");
+                return;
+            }
+            
+            let p = gameState.squad[gameState.selectedPlayerIndex];
+
+            if (p.status !== 'Active') {
+                alert(`You cannot train ${p.name} right now because they are unavailable (${p.status}).`);
+                return;
+            }
+            
+            if (p.ovr >= 99) {
+                alert(`${p.name} has reached their maximum potential (99 OVR)!`);
+                return;
+            }
+
+            if (gameState.seasonTrainings >= 15) {
+                alert("You have reached the maximum limit of 15 player trainings for this season!");
+                return;
+            }
+
+            let cost = 5000;
+            
+            if(gameState.budget < cost) {
+                alert(`Insufficient funds! You need ${formatCurrency(cost)} to train this player.`);
+                return;
+            }
+
+            gameState.budget -= cost;
+            gameState.seasonTrainings++;
+            updateHeaderFinancials();
+            
+            document.getElementById('trainings-left').innerText = 15 - gameState.seasonTrainings;
+
+            if(Math.random() < 0.015) { 
+                p.status = 'Injured';
+                p.statusDuration = Math.floor(Math.random() * 3) + 1;
+                alert(`DISASTER! ${p.name} sustained an injury during training and will be out for ${p.statusDuration} week(s). They gained no OVR.`);
+                
+                let pIndex = gameState.squad.indexOf(p);
+                if(pIndex < 11) {
+                     let subIndex = gameState.squad.findIndex((sub, i) => i >= 11 && sub.status === 'Active');
+                     if(subIndex !== -1) {
+                         gameState.squad[pIndex] = gameState.squad[subIndex];
+                         gameState.squad[subIndex] = p;
+                         changeFormation();
+                     }
+                }
+                gameState.selectedPlayerIndex = null;
+                renderSquadTable();
+                renderSellTable();
+                return;
+            }
+
+            p.ovr += 1;
+            alert(`Training successful! ${p.name}'s OVR increased to ${p.ovr}.`);
+            
+            renderSquadTable();
+            renderSellTable(); 
+        }
+
+        function retrainPlayer() {
+            if(gameState.selectedPlayerIndex === null) {
+                alert("Please click on a player from the Squad List to select them first.");
+                return;
+            }
+            
+            let p = gameState.squad[gameState.selectedPlayerIndex];
+
+            if (p.status !== 'Active') {
+                alert(`You cannot retrain ${p.name} right now because they are unavailable (${p.status}).`);
+                return;
+            }
+
+            let newPos = document.getElementById('retrain-pos-select').value;
+
+            if (p.natPos === newPos) {
+                alert(`${p.name} is already a natural ${newPos}!`);
+                return;
+            }
+
+            const posGroups = {
+                'GK': 0, 
+                'CB': 1, 
+                'LB': 2, 'RB': 2, 
+                'LWB': 3, 'RWB': 3,
+                'CDM': 4, 
+                'CM': 5, 
+                'LM': 6, 'RM': 6, 
+                'CAM': 7, 'LAM': 7, 'RAM': 7,
+                'LW': 8, 'RW': 8, 
+                'CF': 9, 'LF': 9, 'RF': 9, 
+                'ST': 10
+            };
+
+            let oldPosVal = posGroups[p.natPos];
+            let newPosVal = posGroups[newPos];
+            let diff = Math.abs(oldPosVal - newPosVal);
+            let penalty = 0;
+
+            if (oldPosVal === 0 && newPosVal !== 0) {
+                penalty = 35 + Math.floor(Math.random() * 15); 
+            } else if (oldPosVal !== 0 && newPosVal === 0) {
+                penalty = 35 + Math.floor(Math.random() * 15); 
+            } else if (diff === 0) {
+                penalty = 0; 
+            } else {
+                let basePenalty = diff * 2;
+                let direction = newPosVal - oldPosVal; 
+                let biasEffect = direction > 0 ? p.atkBias : -p.atkBias; 
+                penalty = basePenalty - biasEffect + Math.floor(Math.random()*3);
+            }
+
+            if (penalty < -3) penalty = -3; 
+            
+            p.natPos = newPos;
+            p.ovr -= penalty;
+
+            if(p.ovr < 1) p.ovr = 1; 
+            if(p.ovr > 99) p.ovr = 99;
+
+            if (penalty > 0) {
+                alert(`Success! ${p.name} has been retrained as a ${newPos}. However, they struggled to adapt and lost ${penalty} OVR.`);
+            } else if (penalty < 0) {
+                alert(`Success! ${p.name} has been retrained as a ${newPos}. It turns out this is their true calling! They GAINED ${Math.abs(penalty)} OVR!`);
+            } else {
+                alert(`Success! ${p.name} smoothly transitioned to a ${newPos} with no loss in overall rating.`);
+            }
+            
+            gameState.selectedPlayerIndex = null;
+            renderSquadTable();
+            renderSellTable();
+        }
+
+        function renewContract() {
+            if(gameState.selectedPlayerIndex === null) {
+                alert("Please click on a player from the Squad List to select them first.");
+                return;
+            }
+            let p = gameState.squad[gameState.selectedPlayerIndex];
+            let cost = p.ovr * 1500;
+            
+            if(gameState.budget >= cost) {
+                gameState.budget -= cost;
+                p.contract += 2; 
+                alert(`Success! ${p.name}'s contract has been extended by 2 years!`);
+                updateHeaderFinancials();
+                
+                gameState.selectedPlayerIndex = null;
+                renderSquadTable();
+            } else {
+                alert(`Insufficient funds! It costs ${formatCurrency(cost)} to renew this player.`);
+            }
+        }
+
+        function renderSquadTable() {
+            const list = document.getElementById('squad-list');
+            list.innerHTML = '';
+            gameState.squad.forEach((player, i) => {
+                const tr = document.createElement('tr');
+                tr.className = `squad-row ${gameState.selectedPlayerIndex === i ? 'selected' : ''}`;
+                tr.onclick = () => selectPlayer(i);
+                
+                let contractDisplay = player.contract === 1 ? `<span style="color:var(--danger); font-weight:bold;">1 Yr</span>` : `${player.contract} Yrs`;
+                
+                let statusDisplay = player.status === 'Active' ? '' : `<br><small style="color:var(--danger); font-weight:bold;">${player.status === 'Injured' ? '🚑' : '✈️'} ${player.status} (${player.statusDuration}w)</small>`;
+
+                let playerAge = player.age || 25;
+                let ageDisplay = player.age >= 35 ? `<span style="color:var(--danger); font-weight:bold;">${playerAge}</span>` : playerAge;
+                tr.innerHTML = `<td>${player.name} <span style="color:#7f8c8d; font-size:0.9em;">(${ageDisplay})</span>${statusDisplay}</td><td><strong>${player.pos}</strong></td><td>${player.natPos}</td><td>${player.ovr}</td><td>${player.goals}</td><td>${contractDisplay}</td>`;
+                list.appendChild(tr);
+            });
+        }
+
+        function renderSetPieces() {
+            const starters = gameState.squad.filter(p => p.isStarting && p.status === 'Active');
+            
+            const spKeys = [
+                { id: 'captain', key: 'captain' },
+                { id: 'pen', key: 'pen' },
+                { id: 'fk-c', key: 'fkC' },
+                { id: 'fk-l', key: 'fkL' },
+                { id: 'fk-r', key: 'fkR' },
+                { id: 'fk-long', key: 'fkLong' },
+                { id: 'corner-l', key: 'cornerL' },
+                { id: 'corner-r', key: 'cornerR' }
+            ];
+
+            spKeys.forEach(sp => {
+                const select = document.getElementById(`sp-${sp.id}`);
+                const currentVal = gameState.setPieces[sp.key];
+                select.innerHTML = '';
+                
+                starters.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.name;
+                    opt.innerText = p.name;
+                    select.appendChild(opt);
+                });
+                
+                if (currentVal && starters.find(p => p.name === currentVal)) {
+                    select.value = currentVal;
+                } else {
+                    select.value = starters[0] ? starters[0].name : '';
+                    gameState.setPieces[sp.key] = select.value;
+                }
+            });
+        }
+
+        function saveSetPieces() {
+            const spKeys = ['captain', 'pen', 'fkC', 'fkL', 'fkR', 'fkLong', 'cornerL', 'cornerR'];
+            const uiKeys = ['captain', 'pen', 'fk-c', 'fk-l', 'fk-r', 'fk-long', 'corner-l', 'corner-r'];
+            for(let i=0; i<spKeys.length; i++){
+                gameState.setPieces[spKeys[i]] = document.getElementById(`sp-${uiKeys[i]}`).value;
+            }
+        }
+
+        function getSetPieceTaker(roleKey) {
+            let takerName = gameState.setPieces[roleKey];
+            let taker = gameState.squad.find(p => p.name === takerName && p.isStarting && p.status === 'Active');
+            if (taker) return taker.name;
+            
+            let outfielders = gameState.squad.filter(p => p.isStarting && p.status === 'Active' && p.pos !== 'GK');
+            outfielders.sort((a,b) => b.ovr - a.ovr);
+            return outfielders.length > 0 ? outfielders[0].name : "Unknown";
+        }
+
+        function renderPitch() {
+            const formKey = document.getElementById('formation-select').value;
+            const layout = tacticalDatabase[formKey];
+            const pitch = document.getElementById('pitch-visualizer');
+            pitch.innerHTML = '<div class="center-circle"></div>';
+            
+            const gkLine = document.createElement('div'); gkLine.className = 'pitch-line';
+            const gkDot = document.createElement('div');
+            gkDot.className = 'player-dot';
+            
+            let bgStyle = currentKitDataURL ? `url(${currentKitDataURL})` : 'none';
+            let bgColor = currentKitDataURL ? 'transparent' : '#f1c40f'; // GK gets yellow if no custom kit (fallback)
+
+            gkDot.style.backgroundImage = bgStyle;
+            gkDot.style.backgroundSize = 'cover';
+            gkDot.style.backgroundColor = bgColor;
+            
+            gkDot.style.color = currentKitDataURL ? '#fff' : '#000';
+            gkDot.style.borderColor = '#000';
+            gkDot.innerText = layout.pos[0];
+            gkLine.appendChild(gkDot);
+            pitch.appendChild(gkLine);
+            
+            let posIndex = 1; 
+            
+            layout.lines.forEach(numPlayers => {
+                const lineDiv = document.createElement('div'); lineDiv.className = 'pitch-line';
+                for(let i = 0; i < numPlayers; i++) {
+                    const dot = document.createElement('div'); dot.className = 'player-dot';
+                    
+                    let bgStyleOut = currentKitDataURL ? `url(${currentKitDataURL})` : 'none';
+                    let bgColorOut = currentKitDataURL ? 'transparent' : '#e74c3c';
+
+                    dot.style.backgroundImage = bgStyleOut;
+                    dot.style.backgroundSize = 'cover';
+                    dot.style.backgroundColor = bgColorOut;
+                    
+                    dot.style.borderColor = 'white';
+                    dot.innerText = layout.pos[posIndex]; 
+                    lineDiv.appendChild(dot); posIndex++;
+                }
+                pitch.appendChild(lineDiv);
+            });
+        }
+
+        function renderTopScorers() {
+            const container = document.getElementById('top-scorers-container');
+            const scorers = gameState.squad.filter(p => p.goals > 0).sort((a,b) => b.goals - a.goals).slice(0, 5);
+            
+            if(scorers.length === 0) {
+                container.innerHTML = '<p>No goals scored yet.</p>';
+                return;
+            }
+            let html = '<table><thead><tr><th>Player</th><th>Goals</th></tr></thead><tbody>';
+            scorers.forEach(s => {
+                html += `<tr><td>${s.name}</td><td><strong>${s.goals}</strong></td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function getGoalScorer() {
+            let starters = gameState.squad.filter(p => p.isStarting && p.status === 'Active');
+            let attackers = starters.filter(p => ['ST', 'LW', 'RW', 'CAM', 'CF', 'LF', 'RF'].includes(p.pos));
+            let midfielders = starters.filter(p => ['CM', 'CDM', 'RM', 'LM'].includes(p.pos));
+            let defenders = starters.filter(p => ['CB', 'LB', 'RB', 'LWB', 'RWB'].includes(p.pos));
+            
+            let rand = Math.random();
+            let pool = starters.filter(p => p.pos !== 'GK'); 
+            
+            if (attackers.length > 0 && rand < 0.55) pool = attackers; 
+            else if (midfielders.length > 0 && rand < 0.85) pool = midfielders; 
+            else if (defenders.length > 0) pool = defenders; 
+            
+            return pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)].name : "Unknown";
+        }
+
+        // --- SCHEDULING ---
+        function createLeagueSchedule(teams) {
+            const schedule = [];
+            const clubs = [...teams];
+            if (clubs.length % 2 !== 0) {
+                clubs.push(null);
+            }
+            const rounds = clubs.length - 1;
+            const half = clubs.length / 2;
+            const rotation = clubs.slice();
+
+            for (let round = 0; round < rounds; round++) {
+                const roundPairs = [];
+                for (let i = 0; i < half; i++) {
+                    const home = rotation[i];
+                    const away = rotation[clubs.length - 1 - i];
+                    if (home !== null && away !== null) {
+                        if (round % 2 === 1 && i === 0) {
+                            roundPairs.push({ home: away, away: home });
+                        } else {
+                            roundPairs.push({ home, away });
+                        }
+                    }
+                }
+                schedule.push(roundPairs);
+                rotation.splice(1, 0, rotation.pop());
+            }
+
+            const secondHalf = schedule.map(round => round.map(pair => ({ home: pair.away, away: pair.home })));
+            return schedule.concat(secondHalf);
+        }
+
+        function initLeagueFixtures() {
+            const teams = gameState.worldLeagues[gameState.tier][gameState.groupIndex];
+            gameState.leagueFixtures = createLeagueSchedule(teams);
+        }
+
+        function initLeagueTable() {
+            gameState.leagueTable = [];
+            let teams = gameState.worldLeagues[gameState.tier][gameState.groupIndex];
+            for(let i=0; i < teams.length; i++) {
+                gameState.leagueTable.push({ name: teams[i], isUser: (teams[i] === gameState.club), p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 });
+            }
+            sortAndRenderLeagueTable();
+        }
+
+        function determineNextFixture() {
+            if (gameState.matchweek >= gameState.totalMatchweeks) {
+                triggerSeasonEnd();
+                return;
+            } 
+            
+            updateTransferWindowUI();
+            
+            gameState.isHomeGame = Math.random() > 0.5;
+
+            if (gameState.cupStatus === 'Active' && cupSchedule.includes(gameState.matchweek) && gameState.cupRoundIndex === cupSchedule.indexOf(gameState.matchweek)) {
+                gameState.nextFixtureType = 'Cup';
+                let tierRandom = Math.floor(Math.random() * 4) + 1;
+                let groupRandom = Math.floor(Math.random() * gameState.worldLeagues[tierRandom].length);
+                let t = gameState.worldLeagues[tierRandom][groupRandom];
+                gameState.currentOpponent = t[Math.floor(Math.random()*t.length)];
+                if(gameState.currentOpponent === gameState.club) gameState.currentOpponent = t[0] !== gameState.club ? t[0] : t[1]; 
+            } 
+            else if (gameState.cup2Status === 'Active' && cup2Schedule.includes(gameState.matchweek) && gameState.cup2RoundIndex === cup2Schedule.indexOf(gameState.matchweek)) {
+                gameState.nextFixtureType = 'Cup2';
+                let tierRandom = Math.floor(Math.random() * 4) + 1;
+                let groupRandom = Math.floor(Math.random() * gameState.worldLeagues[tierRandom].length);
+                let t = gameState.worldLeagues[tierRandom][groupRandom];
+                gameState.currentOpponent = t[Math.floor(Math.random()*t.length)];
+                if(gameState.currentOpponent === gameState.club) gameState.currentOpponent = t[0] !== gameState.club ? t[0] : t[1]; 
+            }
+            else {
+                gameState.nextFixtureType = 'League';
+                const fixture = gameState.leagueFixtures[gameState.matchweek];
+                if (fixture && (fixture.home === gameState.club || fixture.away === gameState.club)) {
+                    if (fixture.home === gameState.club) {
+                        gameState.isHomeGame = true;
+                        gameState.currentOpponent = fixture.away;
+                    } else {
+                        gameState.isHomeGame = false;
+                        gameState.currentOpponent = fixture.home;
+                    }
+                } else {
+                    const cpuTeams = gameState.leagueTable.filter(t => !t.isUser);
+                    gameState.currentOpponent = cpuTeams[Math.floor(Math.random() * cpuTeams.length)].name;
+                    gameState.isHomeGame = Math.random() > 0.5;
+                }
+            }
+            
+            updateFixtureUI();
+        }
+
+        function updateFixtureUI() {
+            const compDisplay = document.getElementById('fixture-comp');
+            const matchupDisplay = document.getElementById('fixture-matchup');
+            
+            let clubDisplay = `<div id="match-badge" class="global-badge" style="width:25px; height:25px; font-size:10px;"></div> <span style="color:var(--primary);">${gameState.club}</span>`;
+            
+            if(gameState.isHomeGame) {
+                matchupDisplay.innerHTML = `${clubDisplay} <span style="color: #95a5a6; margin:0 10px;">vs</span> <span>${gameState.currentOpponent}</span>`;
+                document.getElementById('match-venue-display').innerText = `${gameState.stadium} (Cap: ${gameState.stadiumCap.toLocaleString()})`;
+            } else {
+                matchupDisplay.innerHTML = `<span>${gameState.currentOpponent}</span> <span style="color: #95a5a6; margin:0 10px;">vs</span> ${clubDisplay}`;
+                document.getElementById('match-venue-display').innerText = `${gameState.currentOpponent} Arena`;
+            }
+            
+            applyGlobalBadge();
+
+            if (gameState.nextFixtureType === 'Cup') {
+                compDisplay.innerHTML = `🏆 ${cupNames[gameState.country]} - ${cupRounds[gameState.cupRoundIndex]}`;
+            } else if (gameState.nextFixtureType === 'Cup2') {
+                compDisplay.innerHTML = `🏆 Carabao Cup - ${cupRounds[gameState.cup2RoundIndex]}`;
+            } else {
+                const currentLeague = leagueStructure[gameState.country].find(l => l.tier === gameState.tier);
+                let lNameText = currentLeague.name;
+                if(currentLeague.groups > 1) {
+                    lNameText += ` (Group ${gameState.groupIndex + 1})`;
+                }
+                compDisplay.innerHTML = `⚽ ${lNameText} - Matchweek ${gameState.matchweek + 1}`;
+            }
+        }
+
+        // --- LIVE MATCH ENGINE (2D TEXT SIM) ---
+        let matchInterval;
+        let lastResultText = "";
+        let isLastMatchCup = false;
+
+        function startLiveMatch() {
+            document.getElementById('live-match-overlay').style.display = 'flex';
+            
+            if(gameState.isHomeGame) {
+                document.getElementById('lm-home').innerText = gameState.club;
+                document.getElementById('lm-away').innerText = gameState.currentOpponent;
+            } else {
+                document.getElementById('lm-home').innerText = gameState.currentOpponent;
+                document.getElementById('lm-away').innerText = gameState.club;
+            }
+            
+            document.getElementById('lm-score').innerText = '0 - 0';
+            document.getElementById('lm-events').innerHTML = '<div>KICK OFF!</div>';
+            document.getElementById('lm-close-btn').style.display = 'none';
+            document.getElementById('last-match-result').style.display = 'none';
+            
+            let minute = 0;
+            let addedTime = 0;
+            let announcedStoppage = false;
+            let userGoals = 0; let oppGoals = 0;
+            const log = document.getElementById('lm-events');
+            
+            let userOvr = gameState.squad.reduce((sum, p) => sum + (p.isStarting && p.status === 'Active' ? p.ovr : 0), 0) / 11;
+            let oppOvr = 65 - (gameState.tier * 3); 
+            
+            if(gameState.isHomeGame) userOvr += 2;
+            else oppOvr += 2;
+
+            let playStyle = document.getElementById('playstyle-select').value;
+            let styleUserMod = 0; let styleOppMod = 0;
+            if(playStyle === 'Attacking') { styleUserMod = 0.01; styleOppMod = 0.01; }
+            else if(playStyle === 'Defensive') { styleUserMod = -0.01; styleOppMod = -0.015; }
+
+            matchInterval = setInterval(() => {
+                minute += 2; 
+
+                if (minute >= 90 && !announcedStoppage) {
+                    addedTime = Math.floor(Math.random() * 5) + 2; 
+                    announcedStoppage = true;
+                    log.innerHTML += `<div style="color:#f39c12; font-weight:bold; margin-top:10px;">90' - The fourth official indicates ${addedTime} minutes of added time!</div>`;
+                }
+
+                let displayMinute = minute > 90 ? `90+${minute - 90}` : `${minute}`;
+                document.getElementById('lm-clock').innerText = `${displayMinute}'`;
+                
+                let baseChance = minute >= 85 ? 0.038 : 0.025; 
+                
+                if (gameState.managerType === 'Motivator' && minute >= 80) {
+                    baseChance += 0.01; 
+                }
+
+                let eventOccurred = false; 
+
+                if(!eventOccurred && Math.random() < 0.0015) { 
+                    eventOccurred = true;
+                    let isUserPlayer = Math.random() > 0.5;
+                    if(isUserPlayer) {
+                        let starters = gameState.squad.filter(p => p.isStarting && p.status === 'Active');
+                        if (starters.length > 0) {
+                            let injuredPlayer = starters[Math.floor(Math.random() * starters.length)];
+                            injuredPlayer.status = 'Injured';
+                            injuredPlayer.statusDuration = Math.floor(Math.random() * 4) + 1; 
+                            log.innerHTML += `<div class="event-card-r">${displayMinute}' - 🚑 INJURY! ${injuredPlayer.name} is forced off the pitch!</div>`;
+                        }
+                    } else {
+                        log.innerHTML += `<div class="event-card-y">${displayMinute}' - 🚑 Injury stoppage for ${gameState.currentOpponent}.</div>`;
+                    }
+                }
+                
+                if(!eventOccurred && Math.random() < baseChance + (userOvr > oppOvr ? 0.015 : 0) + styleUserMod) {
+                    eventOccurred = true;
+                    userGoals++; 
+                    let dramaText = minute > 90 ? "LATE DRAMA! " : "";
+                    
+                    if (minute > 90) {
+                        if (userGoals === oppGoals || userGoals === oppGoals + 1) dramaText = "LATE DRAMA! ";
+                        else if (userGoals < oppGoals) dramaText = "Consolation goal. ";
+                    }
+
+                    let goalTypeRoll = Math.random();
+                    if (goalTypeRoll < 0.08) {
+                        let scorerName = getSetPieceTaker('pen');
+                        let p = gameState.squad.find(p => p.name === scorerName);
+                        if(p) p.goals++;
+                        log.innerHTML += `<div class="event-goal">${displayMinute}' - ${dramaText}PENALTY to ${gameState.club}! ${scorerName} steps up... GOAL!</div>`;
+                    } else if (goalTypeRoll < 0.16) {
+                        let fkRoles = ['fkC', 'fkL', 'fkR', 'fkLong'];
+                        let role = fkRoles[Math.floor(Math.random() * fkRoles.length)];
+                        let scorerName = getSetPieceTaker(role);
+                        let p = gameState.squad.find(p => p.name === scorerName);
+                        if(p) p.goals++;
+                        log.innerHTML += `<div class="event-goal">${displayMinute}' - ${dramaText}Spectacular free-kick from ${scorerName} finds the back of the net!</div>`;
+                    } else if (goalTypeRoll < 0.28) {
+                        let role = Math.random() < 0.5 ? 'cornerL' : 'cornerR';
+                        let assister = getSetPieceTaker(role);
+                        let scorerName = getGoalScorer(); 
+                        if (scorerName === assister) scorerName = getGoalScorer(); 
+                        let p = gameState.squad.find(p => p.name === scorerName);
+                        if(p) p.goals++;
+                        log.innerHTML += `<div class="event-goal">${displayMinute}' - ${dramaText}Corner whipped in by ${assister}, and ${scorerName} heads it in! GOAL!</div>`;
+                    } else {
+                        let scorerName = getGoalScorer();
+                        let p = gameState.squad.find(p => p.name === scorerName);
+                        if(p) p.goals++;
+                        log.innerHTML += `<div class="event-goal">${displayMinute}' - ${dramaText}GOAL for ${gameState.club} by ${scorerName}!</div>`;
+                    }
+                }
+                
+                if(!eventOccurred && Math.random() < baseChance + (oppOvr > userOvr ? 0.015 : 0) + styleOppMod) {
+                    eventOccurred = true;
+                    oppGoals++; 
+                    let dramaText = minute > 90 ? "HEARTBREAK! " : "";
+                    
+                    if (minute > 90) {
+                        if (oppGoals === userGoals || oppGoals === userGoals + 1) dramaText = "HEARTBREAK! ";
+                        else if (oppGoals < userGoals) dramaText = "Consolation goal. ";
+                    }
+
+                    let goalTypeRoll = Math.random();
+                    if (goalTypeRoll < 0.08) {
+                        log.innerHTML += `<div class="event-goal-opp">${displayMinute}' - ${dramaText}Penalty awarded to ${gameState.currentOpponent}... Converted.</div>`;
+                    } else if (goalTypeRoll < 0.16) {
+                        log.innerHTML += `<div class="event-goal-opp">${displayMinute}' - ${dramaText}A stunning free-kick goal for ${gameState.currentOpponent}!</div>`;
+                    } else if (goalTypeRoll < 0.28) {
+                        log.innerHTML += `<div class="event-goal-opp">${displayMinute}' - ${dramaText}Goal from a corner by ${gameState.currentOpponent}!</div>`;
+                    } else {
+                        log.innerHTML += `<div class="event-goal-opp">${displayMinute}' - ${dramaText}GOAL for ${gameState.currentOpponent}!</div>`;
+                    }
+                }
+
+                if(!eventOccurred && Math.random() < 0.04) {
+                    eventOccurred = true;
+                    log.innerHTML += `<div class="event-card-y">${displayMinute}' - Yellow Card.</div>`;
+                }
+                
+                if(gameState.isHomeGame) {
+                    document.getElementById('lm-score').innerText = `${userGoals} - ${oppGoals}`;
+                } else {
+                    document.getElementById('lm-score').innerText = `${oppGoals} - ${userGoals}`;
+                }
+                
+                log.scrollTop = log.scrollHeight;
+
+                if(minute >= 90 + addedTime) {
+                    clearInterval(matchInterval);
+                    log.innerHTML += `<div style="margin-top:10px; font-weight:bold;">FULL TIME!</div>`;
+                    document.getElementById('lm-close-btn').style.display = 'block';
+                    processMatchResult(userGoals, oppGoals);
+                }
+            }, 80); 
+        }
+
+        function simulatePenalties(isHomeGame) {
+            let uPens = 0, oPens = 0;
+            let uTaken = 0, oTaken = 0;
+            let pLog = "<br><strong>Penalty Shootout (A-B-A-B):</strong><br>";
+
+            for(let i=0; i<5; i++) {
+                if (isHomeGame) {
+                    let uScored = Math.random() < 0.75;
+                    if(uScored) uPens++;
+                    uTaken++;
+                    pLog += `<span style="color:var(--primary)">${gameState.club}:</span> ${uScored ? '⚽' : '❌'} &nbsp;|&nbsp; `;
+                    if(uPens > oPens + (5 - oTaken) || oPens > uPens + (5 - uTaken)) break;
+                    
+                    let oScored = Math.random() < 0.75;
+                    if(oScored) oPens++;
+                    oTaken++;
+                    pLog += `<span>${gameState.currentOpponent}:</span> ${oScored ? '⚽' : '❌'}<br>`;
+                    if(uPens > oPens + (5 - oTaken) || oPens > uPens + (5 - uTaken)) break;
+                } else {
+                    let oScored = Math.random() < 0.75;
+                    if(oScored) oPens++;
+                    oTaken++;
+                    pLog += `<span>${gameState.currentOpponent}:</span> ${oScored ? '⚽' : '❌'} &nbsp;|&nbsp; `;
+                    if(oPens > uPens + (5 - uTaken) || uPens > oPens + (5 - oTaken)) break;
+                    
+                    let uScored = Math.random() < 0.75;
+                    if(uScored) uPens++;
+                    uTaken++;
+                    pLog += `<span style="color:var(--primary)">${gameState.club}:</span> ${uScored ? '⚽' : '❌'}<br>`;
+                    if(oPens > uPens + (5 - uTaken) || uPens > oPens + (5 - oTaken)) break;
+                }
+            }
+
+            let round = 6;
+            while(uPens === oPens) {
+                pLog += `<br><em>Sudden Death (Round ${round}):</em><br>`;
+                if (isHomeGame) {
+                    let uScored = Math.random() < 0.75;
+                    if(uScored) uPens++;
+                    pLog += `<span style="color:var(--primary)">${gameState.club}:</span> ${uScored ? '⚽' : '❌'} &nbsp;|&nbsp; `;
+                    
+                    let oScored = Math.random() < 0.75;
+                    if(oScored) oPens++;
+                    pLog += `<span>${gameState.currentOpponent}:</span> ${oScored ? '⚽' : '❌'}`;
+                } else {
+                    let oScored = Math.random() < 0.75;
+                    if(oScored) oPens++;
+                    pLog += `<span>${gameState.currentOpponent}:</span> ${oScored ? '⚽' : '❌'} &nbsp;|&nbsp; `;
+                    
+                    let uScored = Math.random() < 0.75;
+                    if(uScored) uPens++;
+                    pLog += `<span style="color:var(--primary)">${gameState.club}:</span> ${uScored ? '⚽' : '❌'}`;
+                }
+                round++;
+            }
+            
+            pLog += `<br><br><strong>Final Penalty Score: ${isHomeGame ? (uPens + " - " + oPens) : (oPens + " - " + uPens)}</strong>`;
+            return { uPens, oPens, pLog };
+        }
+
+        function processMatchResult(userGoals, oppGoals) {
+            isLastMatchCup = (gameState.nextFixtureType === 'Cup' || gameState.nextFixtureType === 'Cup2');
+            
+            if(gameState.isHomeGame) {
+                lastResultText = `${gameState.club} ${userGoals} - ${oppGoals} ${gameState.currentOpponent}`;
+            } else {
+                lastResultText = `${gameState.currentOpponent} ${oppGoals} - ${userGoals} ${gameState.club}`;
+            }
+
+            if (gameState.nextFixtureType === 'League') {
+                gameState.matchweek++;
+                document.getElementById('matchweek-num').innerText = gameState.matchweek;
+                let userTeam = gameState.leagueTable.find(t => t.isUser);
+                let oppTeam = gameState.leagueTable.find(t => t.name === gameState.currentOpponent);
+                
+                updateTeamStats(userTeam, userGoals, oppGoals);
+                updateTeamStats(oppTeam, oppGoals, userGoals);
+                
+                gameState.leagueTable.forEach(team => {
+                    if(team !== userTeam && team !== oppTeam) updateTeamStats(team, Math.floor(Math.random()*3), Math.floor(Math.random()*3));
+                });
+                sortAndRenderLeagueTable();
+                
+            } else if (gameState.nextFixtureType === 'Cup') {
+                if (userGoals > oppGoals) {
+                    gameState.cupRoundIndex++;
+                    lastResultText += `<br><em>You advanced to the next round!</em>`;
+                } else if (userGoals < oppGoals) {
+                    gameState.cupStatus = 'Eliminated';
+                    lastResultText += `<br><em>Knocked out of the Cup.</em>`;
+                } else {
+                    let pOut = simulatePenalties(gameState.isHomeGame);
+                    lastResultText += pOut.pLog;
+                    if(pOut.uPens > pOut.oPens) {
+                        gameState.cupRoundIndex++;
+                        lastResultText += `<br><strong style="color:var(--primary);">You won on penalties and advanced!</strong>`;
+                    } else {
+                        gameState.cupStatus = 'Eliminated';
+                        lastResultText += `<br><strong style="color:var(--danger);">Knocked out on penalties.</strong>`;
+                    }
+                }
+            } else if (gameState.nextFixtureType === 'Cup2') {
+                if (userGoals > oppGoals) {
+                    gameState.cup2RoundIndex++;
+                    lastResultText += `<br><em>You advanced to the next round!</em>`;
+                } else if (userGoals < oppGoals) {
+                    gameState.cup2Status = 'Eliminated';
+                    lastResultText += `<br><em>Knocked out of the Cup.</em>`;
+                } else {
+                    let pOut = simulatePenalties(gameState.isHomeGame);
+                    lastResultText += pOut.pLog;
+                    if(pOut.uPens > pOut.oPens) {
+                        gameState.cup2RoundIndex++;
+                        lastResultText += `<br><strong style="color:var(--primary);">You won on penalties and advanced!</strong>`;
+                    } else {
+                        gameState.cup2Status = 'Eliminated';
+                        lastResultText += `<br><strong style="color:var(--danger);">Knocked out on penalties.</strong>`;
+                    }
+                }
+            }
+        }
+
+        function closeLiveMatch() {
+            document.getElementById('live-match-overlay').style.display = 'none';
+            const resBox = document.getElementById('last-match-result');
+            resBox.style.display = 'block';
+            resBox.className = isLastMatchCup ? 'match-result-box result-cup' : 'match-result-box result-league';
+            resBox.innerHTML = `<strong>Last Match Result:</strong><br>${lastResultText}`;
+            
+            // Aging during season (small chance for extra aging beyond yearly increment)
+            gameState.squad.forEach(p => {
+                if(Math.random() < 0.02) {
+                    p.age = (p.age || 25) + 1;
+                }
+            });
+            
+            let returningPlayers = [];
+            gameState.squad.forEach(p => {
+                if (p.status !== 'Active') {
+                    p.statusDuration--;
+                    if (p.statusDuration <= 0) {
+                        p.status = 'Active';
+                        returningPlayers.push(p.name);
+                    }
+                }
+            });
+            if(returningPlayers.length > 0) {
+                alert(`Good news! The following players have returned to the active squad: ${returningPlayers.join(', ')}`);
+            }
+
+            if (Math.random() < 0.1) { 
+                let available = gameState.squad.filter(p => p.status === 'Active');
+                if(available.length > 0) {
+                    let p = available[Math.floor(Math.random() * available.length)];
+                    let reasons = ["Personal Leave", "Illness", "Family Emergency"];
+                    let reason = reasons[Math.floor(Math.random() * reasons.length)];
+                    let duration = Math.floor(Math.random() * 2) + 1; 
+                    
+                    p.status = 'Leave';
+                    p.statusDuration = duration;
+                    
+                    alert(`Unexpected Event: ${p.name} will be unavailable for ${duration} week(s) due to ${reason}.`);
+                }
+            }
+
+            gameState.squad.forEach((p, i) => {
+                if(p.status !== 'Active' && i < 11) {
+                    let subIndex = gameState.squad.findIndex((sub, idx) => idx >= 11 && sub.status === 'Active');
+                    if(subIndex !== -1) {
+                        let temp = gameState.squad[i];
+                        gameState.squad[i] = gameState.squad[subIndex];
+                        gameState.squad[subIndex] = temp;
+                    }
+                }
+            });
+            changeFormation();
+
+            renderSquadTable(); 
+            renderTopScorers(); 
+            
+            if(isTransferWindowOpen() && gameState.matchweek < gameState.totalMatchweeks) {
+                if(Math.random() < 0.35 && gameState.squad.length > 15) {
+                    let pIndex = Math.floor(Math.random() * gameState.squad.length);
+                    let p = gameState.squad[pIndex];
+                    let val = Math.floor(Math.pow(p.ovr - 45, 2) * 2000);
+                    if(val < 10000) val = 10000;
+                    let offer = Math.floor(val * (Math.random() * 0.4 + 1.1)); 
+                    
+                    setTimeout(() => {
+                        if(confirm(`🚨 INCOMING TRANSFER OFFER (WINDOW IS OPEN) 🚨\n\nAnother club has offered ${formatCurrency(offer)} for ${p.name} (OVR ${p.ovr}, Pos: ${p.natPos}).\n\nDo you accept?`)) {
+                            gameState.budget += offer;
+                            gameState.squad.splice(pIndex, 1);
+                            updateHeaderFinancials();
+                            
+                            if (pIndex < 11) {
+                                let subIndex = gameState.squad.findIndex((sub, idx) => idx >= 11 && sub.status === 'Active');
+                                if(subIndex !== -1) {
+                                    let temp = gameState.squad[pIndex];
+                                    gameState.squad[pIndex] = gameState.squad[subIndex];
+                                    gameState.squad[subIndex] = temp;
+                                }
+                            }
+                            
+                            changeFormation(); 
+                            renderSquadTable();
+                            renderSetPieces();
+                            alert(`${p.name} has been sold to another club!`);
+                        }
+                    }, 500);
+                }
+            }
+
+            determineNextFixture();
+        }
+
+        function updateTeamStats(team, gf, ga) {
+            team.p++; team.gf+=gf; team.ga+=ga; team.gd = team.gf - team.ga;
+            if(gf>ga) { team.w++; team.pts+=3; }
+            else if(gf===ga) { team.d++; team.pts++; }
+            else { team.l++; }
+        }
+
+        function sortAndRenderLeagueTable() {
+            gameState.leagueTable.sort((a,b) => b.pts!==a.pts ? b.pts-a.pts : (b.gd!==a.gd ? b.gd-a.gd : b.gf-a.gf));
+            const tbody = document.getElementById('league-table-body');
+            tbody.innerHTML = '';
+            gameState.leagueTable.forEach((team, i) => {
+                const tr = document.createElement('tr');
+                if(team.isUser) tr.className = 'user-row';
+                tr.innerHTML = `<td>${i + 1}</td><td>${team.name}</td><td>${team.p}</td><td>${team.w}</td><td>${team.d}</td><td>${team.l}</td><td>${team.gd > 0 ? '+'+team.gd : team.gd}</td><td><strong>${team.pts}</strong></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateTransferWindowUI() {
+            const msgBox = document.getElementById('transfer-window-msg');
+            if(!isTransferWindowOpen()) {
+                msgBox.innerText = "TRANSFER WINDOW CLOSED: You cannot buy targets until the next window. Free Agents only.";
+            } else {
+                msgBox.innerText = "TRANSFER WINDOW OPEN: You can currently negotiate with other clubs.";
+            }
+        }
+
+        function searchTransfers() {
+            let pos = document.getElementById('transfer-search-pos').value;
+            const tbody = document.getElementById('transfer-list');
+            tbody.innerHTML = '';
+            
+            const windowOpen = isTransferWindowOpen();
+            let possiblePos = posMap[pos];
+            
+            for(let i=0; i<4; i++) {
+                let naturalPosition = possiblePos[Math.floor(Math.random() * possiblePos.length)];
+                let ovr = Math.floor(Math.random()*15) + 55;
+                let cost = Math.floor(Math.pow(ovr - 45, 2) * 2000); 
+                
+                let randCountry = Math.random() > 0.5 ? gameState.country : getRandomCountry();
+                let playerName = randomName(randCountry);
+                
+                let tierRandom = Math.floor(Math.random() * (5 - gameState.tier)) + gameState.tier;
+                if (tierRandom > 4) tierRandom = 4;
+                let groupRandom = Math.floor(Math.random() * gameState.worldLeagues[tierRandom].length);
+                let clubName = gameState.worldLeagues[tierRandom][groupRandom][Math.floor(Math.random() * gameState.worldLeagues[tierRandom][groupRandom].length)];
+                if (clubName === gameState.club) clubName = "Local FC";
+
+                let btnHtml = windowOpen ? `<button class="btn-small" onclick="buyPlayer(${cost}, this, '${playerName}', '${naturalPosition}', ${ovr}, false)">Buy</button>` : `<button class="btn-small" disabled>Closed</button>`;
+                
+                tbody.innerHTML += `<tr><td>${playerName}</td><td>${clubName}</td><td>${naturalPosition}</td><td>${ovr}</td><td>${formatCurrency(cost)}</td><td>${btnHtml}</td></tr>`;
+            }
+        }
+
+        function buyPlayer(cost, btnElement, name, pos, ovr, isFreeAgent = false) {
+            if (!isFreeAgent && !isTransferWindowOpen()) {
+                alert("The Transfer Window is now CLOSED! You can only sign Free Agents right now.");
+                btnElement.disabled = true;
+                btnElement.innerText = "Closed";
+                return;
+            }
+
+            if(gameState.budget >= cost) {
+                gameState.budget -= cost;
+                updateHeaderFinancials();
+                
+                gameState.squad.push({
+                    name: name, pos: 'SUB', natPos: pos, ovr: parseInt(ovr), isStarting: false, goals: 0, contract: 3, atkBias: Math.floor(Math.random() * 11) - 5, status: 'Active', statusDuration: 0, age: Math.floor(Math.random() * (34 - 24 + 1)) + 24
+                });
+                
+                btnElement.parentElement.parentElement.remove();
+                
+                alert(`Transfer complete! ${name} has signed a 3-year contract and been added to your squad's bench.`);
+                renderSetPieces();
+                changeFormation(); 
+                renderSellTable();
+            } else {
+                alert('Insufficient funds!');
+            }
+        }
+        
+        function renderSellTable() {
+            const tbody = document.getElementById('sell-list');
+            tbody.innerHTML = '';
+            gameState.squad.forEach((p, i) => {
+                let val = Math.floor(Math.pow(p.ovr - 45, 2) * 2000); 
+                if(val < 10000) val = 10000;
+                tbody.innerHTML += `<tr>
+                    <td>${p.name}</td>
+                    <td>${p.natPos}</td>
+                    <td>${p.ovr}</td>
+                    <td>${formatCurrency(val)}</td>
+                    <td>
+                        <button class="btn-small" style="background:var(--danger);" onclick="sellPlayer(${i}, ${val})">Sell</button>
+                        <button class="btn-small" style="background:var(--secondary); margin-left:5px;" onclick="offerForLoan(${i})">Loan</button>
+                    </td>
+                </tr>`;
+            });
+        }
+        
+        function sellPlayer(index, val) {
+            if(gameState.squad.length <= 15) {
+                alert("Your squad is too small! You must keep at least 15 active players.");
+                return;
+            }
+            let p = gameState.squad.splice(index, 1)[0];
+            gameState.budget += val;
+            updateHeaderFinancials();
+            alert(`${p.name} was sold to another club for ${formatCurrency(val)}!`);
+            renderSetPieces();
+            
+            if (index < 11) {
+                let subIndex = gameState.squad.findIndex((sub, idx) => idx >= 11 && sub.status === 'Active');
+                if(subIndex !== -1) {
+                    let temp = gameState.squad[index];
+                    gameState.squad[index] = gameState.squad[subIndex];
+                    gameState.squad[subIndex] = temp;
+                }
+            }
+
+            changeFormation(); 
+            renderSellTable();
+        }
+
+        function offerForLoan(index) {
+            if(gameState.squad.length <= 15) {
+                alert("Your squad is too small! You must keep at least 15 active players.");
+                return;
+            }
+            
+            let p = gameState.squad[index];
+            
+            if(Math.random() < 0.7) {
+                let tierRandom = Math.floor(Math.random() * 4) + 1;
+                let groupRandom = Math.floor(Math.random() * gameState.worldLeagues[tierRandom].length);
+                let interestedClub = gameState.worldLeagues[tierRandom][groupRandom][Math.floor(Math.random() * gameState.worldLeagues[tierRandom][groupRandom].length)];
+                
+                if (interestedClub === gameState.club) interestedClub = "Local FC";
+
+                if(confirm(`🚨 LOAN OFFER 🚨\n\n${interestedClub} wants to take ${p.name} (OVR ${p.ovr}) on loan for the rest of the season. They will get regular playing time to develop.\n\nDo you accept?`)) {
+                    let loanedPlayer = gameState.squad.splice(index, 1)[0];
+                    gameState.loanedOut.push(loanedPlayer);
+
+                    if (index < 11) {
+                        let subIndex = gameState.squad.findIndex((sub, idx) => idx >= 11 && sub.status === 'Active');
+                        if(subIndex !== -1) {
+                            let temp = gameState.squad[index];
+                            gameState.squad[index] = gameState.squad[subIndex];
+                            gameState.squad[subIndex] = temp;
+                        }
+                    }
+
+                    changeFormation(); 
+                    renderSquadTable();
+                    renderSetPieces();
+                    renderSellTable();
+                    alert(`${p.name} has joined ${interestedClub} on loan!`);
+                }
+            } else {
+                alert(`No clubs are currently interested in taking ${p.name} on loan.`);
+            }
+        }
+
+        function searchScouts() {
+            let minExp = parseInt(document.getElementById('search-scout-exp').value);
+            let minJudg = parseInt(document.getElementById('search-scout-judg').value);
+            
+            gameState.availableScouts = [];
+            for(let i=0; i<3; i++) {
+                let e = Math.floor(Math.random() * (6 - minExp)) + minExp;
+                if (e > 5) e = 5;
+                let j = Math.floor(Math.random() * (6 - minJudg)) + minJudg;
+                if (j > 5) j = 5;
+                
+                gameState.availableScouts.push({
+                    name: randomName(gameState.country),
+                    exp: e,
+                    judg: j
+                });
+            }
+            updateScoutUI();
+        }
+
+        function generateScouts() {
+            searchScouts(); 
+        }
+
+        function updateScoutUI() {
+            const hirePanel = document.getElementById('hire-scout-panel');
+            const activePanel = document.getElementById('active-scout-panel');
+            const list = document.getElementById('available-scouts-list');
+            
+            if (gameState.hiredScout) {
+                hirePanel.style.display = 'none';
+                activePanel.style.display = 'block';
+                document.getElementById('current-scout-name').innerText = gameState.hiredScout.name;
+                document.getElementById('current-scout-exp').innerText = '⭐'.repeat(gameState.hiredScout.exp);
+                document.getElementById('current-scout-judg').innerText = '⭐'.repeat(gameState.hiredScout.judg);
+            } else {
+                hirePanel.style.display = 'block';
+                activePanel.style.display = 'none';
+                list.innerHTML = '';
+                gameState.availableScouts.forEach((s, i) => {
+                    let cost = (s.exp + s.judg) * 5000;
+                    list.innerHTML += `<div class="scout-card">
+                        <div>
+                            <strong>${s.name}</strong><br>
+                            Experience: <span class="star">${'⭐'.repeat(s.exp)}</span> | Judgment: <span class="star">${'⭐'.repeat(s.judg)}</span>
+                        </div>
+                        <button class="btn-small" onclick="hireScout(${i}, ${cost})">Hire (${formatCurrency(cost)})</button>
+                    </div>`;
+                });
+            }
+        }
+
+        function hireScout(index, cost) {
+            if (gameState.budget >= cost) {
+                gameState.budget -= cost;
+                gameState.hiredScout = gameState.availableScouts[index];
+                updateHeaderFinancials();
+                updateScoutUI();
+            } else {
+                alert('Insufficient funds to hire this scout!');
+            }
+        }
+
+        function updateCountryDropdown() {
+            const continent = document.getElementById('scout-continent').value;
+            const countrySelect = document.getElementById('scout-country');
+            countrySelect.innerHTML = '';
+            continentData[continent].forEach(c => {
+                let opt = document.createElement('option');
+                opt.value = c; opt.innerText = c;
+                countrySelect.appendChild(opt);
+            });
+        }
+
+        function dispatchScout() {
+            if (!gameState.hiredScout) return;
+            
+            let tripCost = 5000; 
+            if (gameState.budget < tripCost) {
+                alert(`Insufficient funds! You need ${formatCurrency(tripCost)} to dispatch a scout.`);
+                return;
+            }
+            
+            gameState.budget -= tripCost;
+            updateHeaderFinancials();
+            
+            let posReq = document.getElementById('scout-youth-pos').value;
+            let possiblePos = posMap[posReq];
+            let scoutCountry = document.getElementById('scout-country').value;
+            
+            let minPlayers = gameState.hiredScout.exp; 
+            let maxPlayers = gameState.hiredScout.exp + 2; 
+            let numPlayers = Math.floor(Math.random() * (maxPlayers - minPlayers + 1)) + minPlayers;
+            
+            let newlyScouted = [];
+            
+            for(let i=0; i<numPlayers; i++) {
+                let naturalPosition = possiblePos[Math.floor(Math.random() * possiblePos.length)];
+                
+                let baseMin = 45 + (gameState.hiredScout.judg * 5); 
+                if (gameState.managerType === 'Youth') baseMin += 5; 
+
+                let minPot = baseMin + Math.floor(Math.random() * 10);
+                let maxPot = minPot + 10 + Math.floor(Math.random() * 8); 
+                
+                if (maxPot > 99) maxPot = 99;
+                let potString = `${minPot}-${maxPot}`;
+
+                let p = { name: randomName(scoutCountry), age: Math.floor(Math.random()*3)+15, natPos: naturalPosition, potential: potString };
+                gameState.academy.push(p);
+                newlyScouted.push(p.name);
+            }
+            
+            alert(`Your scout returned from ${scoutCountry} with ${numPlayers} new talent(s): ${newlyScouted.join(', ')}`);
+            renderAcademy();
+        }
+
+        function renderAcademy() {
+            const tbody = document.getElementById('academy-list');
+            tbody.innerHTML = '';
+            gameState.academy.forEach((p, i) => {
+                tbody.innerHTML += `<tr>
+                    <td>${p.name}</td>
+                    <td>${p.age}</td>
+                    <td>${p.potential}</td>
+                    <td>${p.natPos}</td>
+                    <td>
+                        <button class="btn-small" onclick="promoteAcademyPlayer(${i})">Promote</button>
+                        <button class="btn-small btn-danger" style="margin-left:5px;" onclick="releaseAcademyPlayer(${i})">Release</button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        function releaseAcademyPlayer(index) {
+            let pName = gameState.academy[index].name;
+            if(confirm(`Are you sure you want to release ${pName} from the academy? They will be gone permanently.`)) {
+                gameState.academy.splice(index, 1);
+                renderAcademy();
+            }
+        }
+
+        function releaseAllAcademyPlayers() {
+            if(gameState.academy.length === 0) {
+                alert("Your academy is already empty.");
+                return;
+            }
+            if(confirm("Are you sure you want to permanently release EVERY player currently in your academy? This action cannot be undone.")) {
+                gameState.academy = [];
+                renderAcademy();
+            }
+        }
+
+        function promoteAcademyPlayer(index) {
+            const promotedPlayer = gameState.academy.splice(index, 1)[0];
+            promotedPlayer.pos = 'SUB'; 
+            promotedPlayer.isStarting = false;
+            let potMin = parseInt(promotedPlayer.potential.split('-')[0]);
+            promotedPlayer.ovr = potMin - Math.floor(Math.random() * 5) - 2; 
+            promotedPlayer.goals = 0;
+            promotedPlayer.contract = 3;
+            promotedPlayer.atkBias = Math.floor(Math.random() * 11) - 5;
+            promotedPlayer.status = 'Active';
+            promotedPlayer.statusDuration = 0;
+            gameState.squad.push(promotedPlayer);
+            
+            alert(`${promotedPlayer.name} has signed a 3-year senior contract (OVR: ${promotedPlayer.ovr}) and moved to the first team!`);
+            renderAcademy();
+            renderSetPieces();
+            changeFormation(); 
+            renderSellTable();
+        }
+
+        function processGlobalPromRel() {
+            let promotedTo = { 1: [], 2: [], 3: [], 4: [] };
+            let relegatedTo = { 1: [], 2: [], 3: [], 4: [] };
+            let staying = { 1: [], 2: [], 3: [], 4: [] };
+            let userReview = "";
+            let nextUserTier = gameState.tier;
+            let nextUserGroup = gameState.groupIndex;
+
+            for(let t=1; t<=4; t++) {
+                let rules = leagueStructure[gameState.country].find(l => l.tier === t);
+                staying[t] = []; 
+
+                for (let g=0; g<rules.groups; g++) {
+                    let table = [];
+                    if (t === gameState.tier && g === gameState.groupIndex) {
+                        table = gameState.leagueTable;
+                    } else {
+                        table = gameState.worldLeagues[t][g].map(name => ({name, isUser: false}));
+                        table.sort(() => Math.random() - 0.5); 
+                    }
+
+                    let autoPromoCount = rules.autoPromo || 0;
+                    let relCount = rules.rel || 0;
+                    let playoffSpots = rules.playoff || [];
+
+                    let promoTeams = table.slice(0, autoPromoCount).map(x => x.name);
+                    let relTeams = table.slice(table.length - relCount).map(x => x.name);
+                    
+                    let playoffWinnerObj = null;
+                    if(playoffSpots.length > 0) {
+                        let pTeams = playoffSpots.map(pos => table[pos-1]);
+                        playoffWinnerObj = pTeams[Math.floor(Math.random() * pTeams.length)];
+                        if(playoffWinnerObj) promoTeams.push(playoffWinnerObj.name);
+                    }
+
+                    let stayingTeams = table.map(x=>x.name).filter(n => !promoTeams.includes(n) && !relTeams.includes(n));
+
+                    if(t > 1) promotedTo[t-1].push(...promoTeams);
+                    if(t < 4) relegatedTo[t+1].push(...relTeams);
+                    
+                    if(t === 4) {
+                        let newTeams = [];
+                        for(let i=0; i<relCount; i++) newTeams.push(generateClubName(gameState.country));
+                        promotedTo[4].push(...newTeams);
+                    }
+                    if(t === 1) stayingTeams = stayingTeams.concat(promoTeams); 
+
+                    staying[t].push(stayingTeams);
+
+                    if(t === gameState.tier && g === gameState.groupIndex) {
+                        let userRank = table.findIndex(x => x.isUser) + 1;
+                        let groupText = rules.groups > 1 ? ` (Group ${g+1})` : "";
+                        userReview += `You finished position ${userRank} out of ${table.length} in ${rules.name}${groupText}.<br><br>`;
+                        
+                        if(userRank <= autoPromoCount) {
+                            userReview += `<strong style="color:var(--primary)">AUTOMATIC PROMOTION!</strong> The board is thrilled.<br>`;
+                            nextUserTier = t - 1;
+                        } else if (playoffSpots.includes(userRank)) {
+                            userReview += `You qualified for the Promotion Play-offs!<br>`;
+                            if(playoffWinnerObj && playoffWinnerObj.isUser) {
+                                userReview += `<strong style="color:var(--primary)">YOU WON THE PLAY-OFF FINAL! PROMOTED!</strong><br>`;
+                                nextUserTier = t - 1;
+                            } else {
+                                userReview += `<strong style="color:var(--danger)">Knocked out in the Play-offs...</strong> Better luck next year.<br>`;
+                            }
+                        } else if (userRank > table.length - relCount) {
+                            if(t === 4) {
+                                userReview += `<strong style="color:var(--danger)">You finished in the relegation zone...</strong> But the board bought a franchise spot to save the club!<br>`;
+                                staying[t][g].push(gameState.club); 
+                                promotedTo[4].pop(); 
+                            } else {
+                                userReview += `<strong style="color:var(--danger)">RELEGATION!</strong> A disaster. You drop down a division.<br>`;
+                                nextUserTier = t + 1;
+                            }
+                        } else {
+                            userReview += `Solid mid-table stability. You will remain in this division.<br>`;
+                        }
+                    }
+                }
+            }
+
+            for(let t=1; t<=4; t++) {
+                let rules = leagueStructure[gameState.country].find(l => l.tier === t);
+                let numGroups = rules.groups;
+                let incoming = [...promotedTo[t], ...relegatedTo[t]];
+                
+                gameState.worldLeagues[t] = [];
+                for(let g=0; g<numGroups; g++) {
+                    let groupArr = [...staying[t][g]];
+                    while (groupArr.length < rules.teamsPerGroup) {
+                        if(incoming.length > 0) {
+                            groupArr.push(incoming.pop());
+                        } else {
+                            groupArr.push(generateClubName(gameState.country));
+                        }
+                    }
+                    gameState.worldLeagues[t].push(groupArr);
+                    
+                    if(t === nextUserTier && groupArr.includes(gameState.club)) {
+                        gameState.tier = nextUserTier;
+                        gameState.groupIndex = g;
+                    }
+                }
+                
+                if (t === nextUserTier) {
+                    let found = false;
+                    for (let g=0; g<numGroups; g++) {
+                        if (gameState.worldLeagues[t][g].includes(gameState.club)) found = true;
+                    }
+                    if (!found) {
+                        gameState.worldLeagues[t][0].pop();
+                        gameState.worldLeagues[t][0].push(gameState.club);
+                        gameState.tier = nextUserTier;
+                        gameState.groupIndex = 0;
+                    }
+                }
+            }
+
+            return userReview;
+        }
+
+        let offseasonInterval;
+        let offseasonSeconds = 600; 
+
+        function triggerSeasonEnd() {
+            switchScreen('offseason-screen');
+            
+            let oldTier = gameState.tier;
+            let reviewTxt = processGlobalPromRel(); 
+            
+            if (gameState.tier < oldTier) {
+                gameState.budget = Math.floor(gameState.budget * 2.5); 
+                reviewTxt += `<br><em>Your club budget has received a massive multiplier for entering a higher division!</em>`;
+            } else if (gameState.tier > oldTier) {
+                gameState.budget = Math.floor(gameState.budget * 0.6); 
+                reviewTxt += `<br><em>Your club budget has been slashed due to relegation.</em>`;
+            } else {
+                gameState.budget = Math.floor(gameState.budget * 1.2); 
+            }
+
+            document.getElementById('board-review-text').innerHTML = reviewTxt;
+            
+            let growthHtml = "";
+            
+            gameState.squad.forEach(p => {
+                p.status = 'Active';
+                p.statusDuration = 0;
+                
+                // Players age +1 year at end of season (realistic aging)
+                p.age = (p.age || 25) + 1;
+
+                let growth = 0;
+                if (p.isStarting) growth += 1;
+                if (p.goals > 10) growth += 2;
+                else if (p.goals > 0) growth += 1;
+
+                let rand = Math.random();
+                if(rand < 0.2) growth += 1; 
+                if(p.ovr > 75 && rand > 0.8) growth -= 1; 
+                
+                if (growth !== 0) {
+                    p.ovr += growth;
+                    let sign = growth > 0 ? '+' : '';
+                    let color = growth > 0 ? 'var(--primary)' : 'var(--danger)';
+                    growthHtml += `<li>${p.name} (Age ${p.age}): <strong style="color:${color}">${sign}${growth}</strong> (New OVR: ${p.ovr})</li>`;
+                } else {
+                    growthHtml += `<li>${p.name} (Age ${p.age}): No change</li>`;
+                }
+            });
+            
+            // Determine which players will retire based on age
+            gameState.playersToRetire = gameState.squad.filter(p => {
+                if (p.age >= 35) {
+                    let retireChance = 0.3 + ((p.age - 35) * 0.1); // 30% base + 10% per year over 35
+                    if (retireChance > 0.8) retireChance = 0.8; // Cap at 80%
+                    return Math.random() < retireChance;
+                }
+                return false;
+            });
+            
+            if (gameState.playersToRetire.length > 0) {
+                growthHtml += `<li><br><strong style="color:var(--danger)">--- RETIREMENTS ---</strong></li>`;
+                gameState.playersToRetire.forEach(p => {
+                    growthHtml += `<li><strong style="color:var(--danger)">${p.name}</strong> (Age ${p.age}) has decided to retire from professional football.</li>`;
+                });
+            }
+
+            let loanReturns = [];
+            gameState.loanedOut.forEach(p => {
+                p.contract--;
+                if (p.contract > 0) {
+                    let growth = Math.floor(Math.random() * 4) + 1; 
+                    if (p.ovr > 80) growth = Math.floor(Math.random() * 2); 
+                    p.ovr += growth;
+                    p.isStarting = false;
+                    p.pos = 'SUB';
+                    p.status = 'Active';
+                    p.statusDuration = 0;
+                    gameState.squad.push(p);
+                    loanReturns.push(`${p.name} (+${growth} OVR)`);
+                }
+            });
+            gameState.loanedOut = [];
+            
+            if(growthHtml === "") growthHtml = "<li>No significant active squad growth.</li>";
+            
+            if (loanReturns.length > 0) {
+                growthHtml += `<li><br><strong>--- RETURNING LOANS ---</strong></li>`;
+                loanReturns.forEach(lr => {
+                    growthHtml += `<li><strong style="color:var(--primary)">${lr}</strong> has returned from loan.</li>`;
+                });
+            }
+
+            document.getElementById('growth-log').innerHTML = growthHtml;
+            document.getElementById('last-match-result').style.display = 'none';
+            
+            if(currentKitDataURL) {
+                updateKitPreview('offseason');
+            }
+
+            offseasonSeconds = 600;
+            updateTimerDisplay();
+            offseasonInterval = setInterval(() => {
+                offseasonSeconds--;
+                updateTimerDisplay();
+                if(offseasonSeconds <= 0) completeOffseason();
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            let m = Math.floor(offseasonSeconds / 60).toString().padStart(2, '0');
+            let s = (offseasonSeconds % 60).toString().padStart(2, '0');
+            document.getElementById('offseason-timer').innerText = `${m}:${s}`;
+        }
+
+        function skipTimer() {
+            clearInterval(offseasonInterval);
+            completeOffseason();
+        }
+
+        function completeOffseason() {
+            clearInterval(offseasonInterval);
+            
+            // Remove retired players from squad (already determined in triggerSeasonEnd)
+            if (gameState.playersToRetire && gameState.playersToRetire.length > 0) {
+                gameState.squad = gameState.squad.filter(p => !gameState.playersToRetire.includes(p));
+            }
+            gameState.playersToRetire = [];
+            
+            let leavingPlayers = [];
+            gameState.squad.forEach(p => p.contract--);
+            let expired = gameState.squad.filter(p => p.contract <= 0);
+            
+            if (expired.length > 0) {
+                if (gameState.squad.length - expired.length < 15) {
+                    alert("Some players had expiring contracts, but the board forcibly auto-renewed them to ensure you have enough players to field a team next season.");
+                    expired.forEach(p => p.contract = 1);
+                } else {
+                    gameState.squad = gameState.squad.filter(p => {
+                        if(p.contract <= 0) { leavingPlayers.push(p.name); return false; }
+                        return true;
+                    });
+                    alert("The following players left the club as free agents because their contracts expired: " + leavingPlayers.join(', '));
+                }
+            }
+
+            gameState.kitURL = currentKitDataURL;
+            
+            gameState.badge.shape = document.getElementById('new-badge-shape').value;
+            gameState.badge.text = document.getElementById('new-badge-text').value.substring(0, 3).toUpperCase();
+            gameState.badge.color = document.getElementById('new-badge-color').value;
+            gameState.badge.textColor = document.getElementById('new-badge-text-color').value;
+            gameState.badge.size = document.getElementById('new-badge-size').value;
+            gameState.badge.x = document.getElementById('new-badge-x').value;
+            gameState.badge.y = document.getElementById('new-badge-y').value;
+
+            applyGlobalBadge();
+
+            gameState.seasonYear++;
+            gameState.squad.forEach(p => p.goals = 0);
+            
+            gameState.seasonTrainings = 0;
+            document.getElementById('trainings-left').innerText = '15';
+
+            generateScouts();
+            updateScoutUI();
+
+            initSeason();
+            changeFormation(); 
+            switchScreen('main-game');
+        }
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function switchMainTab(evt, tabId) {
+            document.querySelectorAll('#main-game .tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('#main-game .tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+        function switchTransferTab(evt, tabId) {
+            document.querySelectorAll('.sub-tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+    </script>
+</body>
+</html
