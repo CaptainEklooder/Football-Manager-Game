@@ -82,10 +82,25 @@
         }
         .form-group { margin-bottom: 12px; }
         label { display: block; margin-bottom: 3px; font-weight: bold; font-size: 14px;}
-        input[type="text"], select { 
+        input[type="text"], select, input[type="number"], textarea { 
             width: 100%; padding: 8px; border: 1px solid var(--input-border); 
             border-radius: 5px; box-sizing: border-box; 
             background-color: var(--input-bg); color: var(--text-dark);
+        }
+        body:not(.dark-mode) input[type="text"],
+        body:not(.dark-mode) input[type="number"],
+        body:not(.dark-mode) select,
+        body:not(.dark-mode) textarea,
+        body:not(.dark-mode) label,
+        body:not(.dark-mode) p,
+        body:not(.dark-mode) td,
+        body:not(.dark-mode) th,
+        body:not(.dark-mode) .sub-tab-btn,
+        body:not(.dark-mode) .btn-small,
+        body:not(.dark-mode) .panel,
+        body:not(.dark-mode) .screen,
+        body:not(.dark-mode) .form-group {
+            color: var(--text-dark) !important;
         }
         input[type="color"] { width: 100%; height: 35px; border: none; cursor: pointer; background: transparent; padding:0; }
         input[type="range"] { width: 100%; cursor: pointer; }
@@ -262,6 +277,9 @@
         <div id="manager-info" class="header-stats" style="display:none;">
             <strong>Manager:</strong> <span id="display-manager"></span> | <strong>Club:</strong> <span id="display-club"></span><br>
             <strong>Budget:</strong> <span id="display-budget">€0</span> | <strong>Stadium Cap:</strong> <span id="display-stadium-cap">0</span>
+        </div>
+        <div style="margin-left: auto;">
+            <button class="btn-small" onclick="openContacts()">Contacts ☎️</button>
         </div>
     </header>
 
@@ -466,7 +484,7 @@
 
                     <div style="max-height: 800px; overflow-y: auto;">
                         <table id="squad-table">
-                            <thead><tr><th>Name</th><th>Role</th><th>Pos</th><th>OVR</th><th>Goals</th><th>Contract</th></tr></thead>
+                            <thead><tr><th>Name</th><th>Role</th><th>Pos</th><th>OVR</th><th>Goals</th><th>Contract</th><th>Morale</th></tr></thead>
                             <tbody id="squad-list"></tbody>
                         </table>
                     </div>
@@ -779,6 +797,10 @@
             document.getElementById('kit-designer-overlay').style.display = 'flex';
             setKDTool('brush');
             
+            if (!currentKitDataURL && gameState.kitURL) {
+                currentKitDataURL = gameState.kitURL;
+            }
+
             kdCtx.clearRect(0, 0, kdCanvas.width, kdCanvas.height);
             if (currentKitDataURL) {
                 let img = new Image();
@@ -1280,7 +1302,7 @@
             gameState.stadiumType = document.getElementById('stadium-type').value;
             
             gameState.kitURL = currentKitDataURL;
-
+            currentKitDataURL = gameState.kitURL;
             gameState.badge.shape = document.getElementById('badge-shape').value;
             gameState.badge.text = document.getElementById('badge-text').value.substring(0, 3).toUpperCase();
             gameState.badge.color = document.getElementById('badge-color').value;
@@ -1416,7 +1438,10 @@
                     ovr: Math.floor(Math.random() * (70 - 55 + 1)) + 55 + ovrBoost,
                     isStarting: true, goals: 0, contract: Math.floor(Math.random() * 3) + 1,
                     atkBias: Math.floor(Math.random() * 11) - 5,
-                    status: 'Active', statusDuration: 0, age: Math.floor(Math.random() * (32 - 22 + 1)) + 22
+                    status: 'Active', statusDuration: 0, age: Math.floor(Math.random() * (32 - 22 + 1)) + 22,
+                    morale: Math.floor(Math.random() * 76) + 25, // 25-100
+                    wantsToLeave: false,
+                    refusesRenew: false
                 });
             }
             for(let i=0; i<7; i++) {
@@ -1426,7 +1451,10 @@
                     ovr: Math.floor(Math.random() * (68 - 50 + 1)) + 50 + ovrBoost,
                     isStarting: false, goals: 0, contract: Math.floor(Math.random() * 3) + 1,
                     atkBias: Math.floor(Math.random() * 11) - 5,
-                    status: 'Active', statusDuration: 0, age: Math.floor(Math.random() * (30 - 20 + 1)) + 20
+                    status: 'Active', statusDuration: 0, age: Math.floor(Math.random() * (30 - 20 + 1)) + 20,
+                    morale: Math.floor(Math.random() * 76) + 25,
+                    wantsToLeave: false,
+                    refusesRenew: false
                 });
             }
             renderSquadTable();
@@ -1623,20 +1651,9 @@
                 alert("Please click on a player from the Squad List to select them first.");
                 return;
             }
-            let p = gameState.squad[gameState.selectedPlayerIndex];
-            let cost = p.ovr * 1500;
-            
-            if(gameState.budget >= cost) {
-                gameState.budget -= cost;
-                p.contract += 2; 
-                alert(`Success! ${p.name}'s contract has been extended by 2 years!`);
-                updateHeaderFinancials();
-                
-                gameState.selectedPlayerIndex = null;
-                renderSquadTable();
-            } else {
-                alert(`Insufficient funds! It costs ${formatCurrency(cost)} to renew this player.`);
-            }
+            const index = gameState.selectedPlayerIndex;
+            closeNegotiationScreen();
+            createNegotiationScreen(index);
         }
 
         function renderSquadTable() {
@@ -1645,17 +1662,457 @@
             gameState.squad.forEach((player, i) => {
                 const tr = document.createElement('tr');
                 tr.className = `squad-row ${gameState.selectedPlayerIndex === i ? 'selected' : ''}`;
-                tr.onclick = () => selectPlayer(i);
+                tr.onclick = () => selectPlayer(i); 
                 
                 let contractDisplay = player.contract === 1 ? `<span style="color:var(--danger); font-weight:bold;">1 Yr</span>` : `${player.contract} Yrs`;
                 
                 let statusDisplay = player.status === 'Active' ? '' : `<br><small style="color:var(--danger); font-weight:bold;">${player.status === 'Injured' ? '🚑' : '✈️'} ${player.status} (${player.statusDuration}w)</small>`;
 
+                // show additional flags
+                if (player.wantsToLeave) {
+                    statusDisplay += `<br><small style="color:var(--danger); font-weight:bold;">⚠️ Wants to leave</small>`;
+                }
+                if (player.refusesRenew) {
+                    statusDisplay += `<br><small style="color:var(--danger); font-weight:bold;">🚫 Refuses renewal</small>`;
+                }
+
+                if (player.salary) {
+                    statusDisplay += `<br><small style="color:var(--primary);">Salary: €${player.salary.toLocaleString()}/mo</small>`;
+                }
+
                 let playerAge = player.age || 25;
                 let ageDisplay = player.age >= 35 ? `<span style="color:var(--danger); font-weight:bold;">${playerAge}</span>` : playerAge;
-                tr.innerHTML = `<td>${player.name} <span style="color:#7f8c8d; font-size:0.9em;">(${ageDisplay})</span>${statusDisplay}</td><td><strong>${player.pos}</strong></td><td>${player.natPos}</td><td>${player.ovr}</td><td>${player.goals}</td><td>${contractDisplay}</td>`;
+
+                // Morale display (emoji + percent)
+                let morale = typeof player.morale === 'number' ? player.morale : 75;
+                let moraleEmoji = morale >= 70 ? '😊' : (morale >= 40 ? '😐' : '😠');
+                let moraleDisplay = `<span title="Morale: ${morale}%">${moraleEmoji} ${morale}%</span>`;
+
+                tr.innerHTML = `<td>${player.name} <span style="color:#7f8c8d; font-size:0.9em;">(${ageDisplay})</span>${statusDisplay}</td><td><strong>${player.pos}</strong></td><td>${player.natPos}</td><td>${player.ovr}</td><td>${player.goals}</td><td>${contractDisplay}</td><td>${moraleDisplay}</td>`;
                 list.appendChild(tr);
             });
+            updateContacts();
+            const renewCostEl = document.getElementById('renew-cost');
+            if (renewCostEl) {
+                renewCostEl.textContent = gameState.selectedPlayerIndex !== null ? (gameState.squad[gameState.selectedPlayerIndex].ovr * 1500).toLocaleString() : '0';
+            }
+        }
+
+        function generateContactMessage(p) {
+            let reason = '';
+            let want = '';
+            if (p.wantsToLeave) {
+                reason = 'Feeling underappreciated / wants a new challenge.';
+                want = 'Request transfer';
+            } else if (p.refusesRenew) {
+                reason = 'Unhappy with contract terms.';
+                want = 'Refuse renewal';
+            } else if (typeof p.morale === 'number' && p.morale < 45) {
+                const reasons = ['Limited playing time', 'Unhappy with tactics', 'Low wages', 'Personal issues', 'Lack of ambition'];
+                reason = reasons[Math.floor(Math.random() * reasons.length)];
+                want = (p.morale < 30) ? 'Request transfer' : 'More playing time / reassurance';
+            }
+            return { reason, want };
+        }
+
+        function updateContacts() {
+            // Only update overlay (contacts are shown in the overlay now)
+            if (document.getElementById('contacts-overlay') && document.getElementById('contacts-overlay').style.display === 'flex') {
+                updateContactsOverlay();
+            }
+        }
+
+        function resolveContact(index) {
+            const p = gameState.squad[index];
+            if (!p) return;
+            p.wantsToLeave = false;
+            p.refusesRenew = false;
+            // boost morale a bit when resolved
+            if (typeof p.morale === 'number') p.morale = Math.min(100, p.morale + 15);
+            if (p.status === 'Transfer Request') p.status = 'Active';
+            alert(`You have resolved the contact with ${p.name}.`);
+            renderSquadTable();
+            updateContacts();
+        }
+
+        function openContacts() {
+            let ov = document.getElementById('contacts-overlay');
+            if (!ov) {
+                createContactsOverlay();
+                ov = document.getElementById('contacts-overlay');
+            }
+            ov.style.display = 'flex';
+            updateContactsOverlay();
+        }
+
+        function closeContacts() {
+            const ov = document.getElementById('contacts-overlay');
+            if (ov) ov.style.display = 'none';
+        }
+
+        function createContactsOverlay() {
+            const ov = document.createElement('div');
+            ov.id = 'contacts-overlay';
+            ov.style.position = 'fixed';
+            ov.style.top = '0';
+            ov.style.left = '0';
+            ov.style.width = '100%';
+            ov.style.height = '100%';
+            ov.style.background = 'rgba(0,0,0,0.6)';
+            ov.style.display = 'none';
+            ov.style.alignItems = 'center';
+            ov.style.justifyContent = 'center';
+            ov.style.zIndex = '9999';
+
+            const card = document.createElement('div');
+            card.style.width = '80%';
+            card.style.maxHeight = '80%';
+            card.style.overflowY = 'auto';
+            card.style.background = 'var(--input-bg)';
+            card.style.border = '1px solid var(--panel-border)';
+            card.style.borderRadius = '8px';
+            card.style.padding = '16px';
+
+            card.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;"><h2>Contacts ☎️</h2><div><button class='btn-small' onclick='closeContacts()'>Close</button></div></div><div id='contacts-overlay-list' style='margin-top:12px;'></div>`;
+            ov.appendChild(card);
+            document.body.appendChild(ov);
+        }
+
+        function updateContactsOverlay() {
+            const container = document.getElementById('contacts-overlay-list');
+            if (!container) return;
+            container.innerHTML = '';
+            let any = false;
+            gameState.squad.forEach((p, i) => {
+                if (p.wantsToLeave || p.refusesRenew || (typeof p.morale === 'number' && p.morale < 45)) {
+                    any = true;
+                    const msg = generateContactMessage(p);
+                    const entry = document.createElement('div');
+                    entry.style.padding = '10px';
+                    entry.style.borderBottom = '1px solid var(--panel-border)';
+                    let buttons = `<button class='btn-small' onclick='selectPlayer(${i});closeContacts();'>View Player</button> <button class='btn-small' onclick='resolveContact(${i});'>Resolve</button> <button class='btn-small' style='margin-left:6px;' onclick='forceSell(${i});'>Offer To Sell</button>`;
+                    if (p.refusesRenew) {
+                        buttons = `<button class='btn-small' onclick='selectPlayer(${i});closeContacts();'>View Player</button> <button class='btn-small' onclick='negotiateRenew(${i});' style='margin-left:6px;'>Negotiate</button> ` + buttons;
+                    }
+                    entry.innerHTML = `<strong>${p.name}</strong> (${p.pos}) — <em>${msg.reason}</em><br><small>Wants: ${msg.want}</small><div style='margin-top:8px;'>${buttons}</div>`;
+                    container.appendChild(entry);
+                }
+            });
+            if (!any) container.innerHTML = '<p>No current contacts.</p>';
+        }
+
+        function forceSell(index) {
+            const p = gameState.squad[index];
+            if (!p) return alert('Player not found');
+            // mark for sale and remove from squad
+            const confirmed = confirm(`Offer ${p.name} to other clubs? This will remove them from your squad.`);
+            if (!confirmed) return;
+            gameState.squad.splice(index, 1);
+            gameState.loanedOut.push(p);
+            alert(`${p.name} has been made available to other clubs.`);
+            renderSquadTable();
+            updateContacts();
+            updateHeaderFinancials();
+        }
+
+        function negotiateRenew(index) {
+            const p = gameState.squad[index];
+            if (!p) return alert('Player not found');
+            
+            // Close any existing negotiation overlay before opening a new one.
+            closeNegotiationScreen();
+            createNegotiationScreen(index);
+        }
+
+        function createNegotiationScreen(index) {
+            const p = gameState.squad[index];
+            
+            // Create overlay
+            const overlay = document.createElement('div');
+            overlay.id = 'negotiation-overlay';
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.background = 'rgba(0,0,0,0.8)';
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.zIndex = '10000';
+
+            const container = document.createElement('div');
+            container.style.width = '90%';
+            container.style.maxWidth = '1000px';
+            container.style.background = 'var(--input-bg)';
+            container.style.border = '2px solid var(--panel-border)';
+            container.style.borderRadius = '12px';
+            container.style.padding = '24px';
+            container.style.display = 'flex';
+            container.style.gap = '40px';
+            container.style.alignItems = 'stretch';
+
+            // Manager side (left)
+            const managerSide = document.createElement('div');
+            managerSide.style.flex = '1';
+            managerSide.style.display = 'flex';
+            managerSide.style.flexDirection = 'column';
+            managerSide.style.alignItems = 'center';
+            managerSide.style.textAlign = 'center';
+            managerSide.style.borderRight = '2px solid var(--panel-border)';
+            managerSide.style.paddingRight = '20px';
+            
+            managerSide.innerHTML = `
+                <div style="font-size: 48px; margin-bottom: 12px; width: 120px; height: 120px; border-radius: 50%; display:flex; align-items:center; justify-content:center; background: #34495e; color: white;">
+                    🪑
+                </div>
+                <h3 style="margin: 16px 0 8px 0;">You</h3>
+                <p style="margin: 0 0 16px 0; color: #95a5a6;">Offer the player a new wage and negotiate until you agree.</p>
+                <input type="text" id="wage-input" placeholder="Wage offer (€ / month, e.g. 40k or 40000)" style="width: 100%; padding: 12px; margin-bottom: 12px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 4px; color: white;">
+                <button class="btn-primary" onclick="submitManagerOffer(${index})" style="width: 100%; padding: 10px; margin-bottom: 10px;">Make Offer</button>
+                <button class="btn-small" onclick="closeNegotiationScreen();" style="width: 100%; padding: 10px; background: #7f8c8d;">End Meeting</button>
+            `;
+
+            const middlePanel = document.createElement('div');
+            middlePanel.style.flex = '1.2';
+            middlePanel.style.display = 'flex';
+            middlePanel.style.flexDirection = 'column';
+            middlePanel.style.justifyContent = 'space-between';
+            middlePanel.style.padding = '0 20px';
+            middlePanel.style.alignItems = 'center';
+            middlePanel.style.textAlign = 'center';
+
+            middlePanel.innerHTML = `
+                <div style="margin-bottom: 20px; width: 100%;">
+                    <h3 style="margin: 0 0 12px 0;">Negotiation Table</h3>
+                    <table style="width: 100%; border-collapse: collapse; color: white;">
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.12);">
+                            <td style="padding: 12px; text-align:left;">Current Offer</td>
+                            <td style="padding: 12px; text-align:right;">€<span id="neg-current-offer">-</span>/month</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.12);">
+                            <td style="padding: 12px; text-align:left;">Player Demand</td>
+                            <td style="padding: 12px; text-align:right;">€<span id="neg-player-demand">-</span>/month</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; text-align:left;">Status</td>
+                            <td style="padding: 12px; text-align:right;" id="neg-status">Waiting for offer</td>
+                        </tr>
+                    </table>
+                </div>
+                <div id="neg-feedback" style="margin-top: 16px; padding: 16px; width: 100%; border-radius: 10px; background: rgba(255,255,255,0.04); min-height: 140px; display: flex; align-items: center; justify-content: center;">
+                    <p id="neg-feedback-text" style="margin: 0; color: #95a5a6;">The player will respond to your wage offer here.</p>
+                </div>
+            `;
+
+            const playerSide = document.createElement('div');
+            playerSide.style.flex = '1';
+            playerSide.style.display = 'flex';
+            playerSide.style.flexDirection = 'column';
+            playerSide.style.alignItems = 'center';
+            playerSide.style.textAlign = 'center';
+            playerSide.style.paddingLeft = '20px';
+            
+            playerSide.innerHTML = `
+                <div style="font-size: 48px; margin-bottom: 12px; width: 120px; height: 120px; border-radius: 50%; display:flex; align-items:center; justify-content:center; background: #2ecc71; color: white;">
+                    ⚽
+                </div>
+                <h3 style="margin: 16px 0 4px 0;">${p.name}</h3>
+                <p style="margin: 0 0 16px 0; font-size: 14px; color: #95a5a6;">${p.pos} | OVR ${p.ovr}</p>
+                <div id="player-response-display" style="background: var(--panel-bg); padding: 16px; border-radius: 8px; width: 100%; min-height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                    <p style="margin: 0; color: #95a5a6; font-style: italic;" id="player-response">Waiting for your offer...</p>
+                </div>
+                <div id="player-actions" style="width: 100%; display: none;"></div>
+            `;
+
+            container.appendChild(managerSide);
+            container.appendChild(middlePanel);
+            container.appendChild(playerSide);
+            overlay.appendChild(container);
+            document.body.appendChild(overlay);
+
+            if (!gameState.negotiation) gameState.negotiation = {};
+            gameState.negotiation.playerIndex = index;
+            gameState.negotiation.lastOffer = null;
+            gameState.negotiation.rounds = 0;
+            gameState.negotiation.playerDemand = null;
+            gameState.negotiation.desiredWage = p.ovr * 1000;
+            gameState.negotiation.minimumDemand = Math.max(Math.floor(p.ovr * 0.75 * 1000), 1000);
+        }
+
+        function submitManagerOffer(index) {
+            const input = document.getElementById('wage-input');
+            const rawValue = input.value.trim().toLowerCase();
+            let multiplier = 1;
+            if (rawValue.endsWith('k')) multiplier = 1000;
+            else if (rawValue.endsWith('m')) multiplier = 1000000;
+            const numericValue = rawValue.replace(/[^0-9]/g, '');
+            const offer = parseInt(numericValue, 10) * multiplier;
+
+            if (isNaN(offer) || offer <= 0) {
+                alert('Please enter a valid wage amount. You can use values like 40k or 40000.');
+                return;
+            }
+
+            const p = gameState.squad[index];
+            const desired = p.ovr * 1000;
+
+            gameState.negotiation.lastOffer = offer;
+            gameState.negotiation.rounds++;
+
+            document.getElementById('neg-current-offer').textContent = offer.toLocaleString();
+            document.getElementById('neg-status').textContent = 'Offer received';
+            document.getElementById('wage-input').value = '';
+
+            let playerMessage = '';
+            if (offer >= desired) {
+                playerMessage = `<span style="color: #27ae60; font-size: 16px;">✓ Yes! This is a fair offer. I'll sign!</span>`;
+                document.getElementById('player-actions').style.display = 'block';
+                document.getElementById('player-actions').innerHTML = `<button class="btn-success" onclick="playerAccepts(${index})" style="width: 100%; padding: 10px;">Close Deal</button>`;
+                document.getElementById('neg-player-demand').textContent = '-';
+                document.getElementById('neg-status').textContent = 'Player is happy';
+            } else if (offer < desired * 0.5) {
+                const counter = Math.floor(desired * 0.85 + Math.random() * 1000);
+                gameState.negotiation.playerDemand = counter;
+                playerMessage = `<span style="color: #e74c3c;">✗ That's too low!</span><br><br><strong>I want €${counter.toLocaleString()}/month</strong><br><span style="color: #95a5a6; font-size: 14px;">That's my minimum.</span>`;
+                document.getElementById('player-actions').style.display = 'block';
+                document.getElementById('player-actions').innerHTML = `
+                    <button class="btn-success" onclick="playerAccepts(${index})" style="width: 100%; padding: 10px; margin-bottom: 8px;">✓ Accept His Demand</button>
+                    <button class="btn-danger" onclick="makeCounterOffer(${index})" style="width: 100%; padding: 10px;">🤝 Counter Offer</button>
+                `;
+                document.getElementById('neg-player-demand').textContent = counter.toLocaleString();
+                document.getElementById('neg-status').textContent = 'Player countered';
+            } else {
+                const chance = (offer / desired) * ((p.morale || 50) / 100);
+                if (Math.random() < chance) {
+                    playerMessage = `<span style="color: #27ae60; font-size: 16px;">✓ Alright, let's do it!</span>`;
+                    document.getElementById('player-actions').style.display = 'block';
+                    document.getElementById('player-actions').innerHTML = `<button class="btn-success" onclick="playerAccepts(${index})" style="width: 100%; padding: 10px;">Close Deal</button>`;
+                    document.getElementById('neg-player-demand').textContent = '-';
+                    document.getElementById('neg-status').textContent = 'Player agreed';
+                } else {
+                    const counter = Math.floor(desired * (0.7 + Math.random() * 0.25));
+                    gameState.negotiation.playerDemand = counter;
+                    playerMessage = `<span style="color: #e74c3c;">✗ I need more than that.</span><br><br><strong>I'm thinking €${counter.toLocaleString()}/month</strong><br><span style="color: #95a5a6; font-size: 14px;">That would be fair.</span>`;
+                    document.getElementById('player-actions').style.display = 'block';
+                    document.getElementById('player-actions').innerHTML = `
+                        <button class="btn-success" onclick="playerAccepts(${index})" style="width: 100%; padding: 10px; margin-bottom: 8px;">✓ Accept His Demand</button>
+                        <button class="btn-danger" onclick="makeCounterOffer(${index})" style="width: 100%; padding: 10px;">🤝 Counter Offer</button>
+                    `;
+                    document.getElementById('neg-player-demand').textContent = counter.toLocaleString();
+                    document.getElementById('neg-status').textContent = 'Player countered';
+                }
+            }
+
+            const playerResponseEl = document.getElementById('player-response');
+            if (playerResponseEl) {
+                playerResponseEl.innerHTML = playerMessage;
+            } else {
+                const playerDisplay = document.getElementById('player-response-display');
+                if (playerDisplay) {
+                    playerDisplay.innerHTML = `<p style="margin: 0; color: #95a5a6; font-style: italic;" id="player-response">${playerMessage}</p>`;
+                }
+            }
+
+            const feedbackText = document.getElementById('neg-feedback-text');
+            if (feedbackText) {
+                feedbackText.innerHTML = playerMessage;
+            }
+
+            if (gameState.negotiation.rounds >= 5) {
+                document.getElementById('player-actions').innerHTML += `<p style="margin-top: 12px; color: #f39c12; font-size: 12px;">⚠️ Player is getting impatient...</p>`;
+            }
+        }
+
+        function makeCounterOffer(index) {
+            const p = gameState.squad[index];
+            document.getElementById('player-response').innerHTML = `<p style="margin: 0; color: #95a5a6; font-style: italic;">Waiting for your counter offer...</p>`;
+            document.getElementById('player-actions').style.display = 'none';
+            document.getElementById('wage-input').focus();
+        }
+
+        function closeNegotiationScreen() {
+            const overlay = document.getElementById('negotiation-overlay');
+            if (overlay) overlay.remove();
+            if (gameState.negotiation) {
+                delete gameState.negotiation;
+            }
+            showTeamTacticsTab();
+        }
+
+        function showTeamTacticsTab() {
+            document.querySelectorAll('#main-game .tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('#main-game .tab-btn').forEach(b => b.classList.remove('active'));
+            const teamTab = document.getElementById('team-tab');
+            if (teamTab) teamTab.classList.add('active');
+            const teamButton = document.querySelector('#main-game .tab-btn[onclick*="team-tab"]');
+            if (teamButton) teamButton.classList.add('active');
+        }
+
+        function playerAccepts(index) {
+            const p = gameState.squad[index];
+            const lastOffer = gameState.negotiation?.lastOffer || gameState.negotiation?.playerDemand;
+
+            if (!lastOffer) {
+                alert('No offer to accept');
+                return;
+            }
+
+            // Update player contract and morale
+            p.refusesRenew = false;
+            p.contract += 2;
+            p.salary = lastOffer;
+            p.morale = Math.min(100, (p.morale || 50) + 12);
+
+            const handshakeText = `🤝 You shake hands with ${p.name} after agreeing on €${lastOffer.toLocaleString()}/month.`;
+            const playerResponseEl = document.getElementById('player-response');
+            const feedbackText = document.getElementById('neg-feedback-text');
+            const statusEl = document.getElementById('neg-status');
+            if (playerResponseEl) playerResponseEl.innerHTML = `<span style="color:#2ecc71; font-size: 16px;">${handshakeText}</span>`;
+            if (feedbackText) feedbackText.innerHTML = handshakeText;
+            if (statusEl) statusEl.textContent = 'Agreement reached';
+            const playerActions = document.getElementById('player-actions');
+            if (playerActions) playerActions.style.display = 'none';
+
+            gameState.selectedPlayerIndex = null;
+            setTimeout(() => {
+                closeNegotiationScreen();
+                alert(`✓ Deal done! ${p.name} has signed a new contract at €${lastOffer.toLocaleString()}/month!`);
+                updateHeaderFinancials();
+                renderSquadTable();
+                updateContacts();
+                updateContactsOverlay();
+            }, 400);
+        }
+
+        function playerDeclines(index) {
+            const p = gameState.squad[index];
+            p.morale = Math.max(0, (p.morale || 50) - 10);
+
+            closeNegotiationScreen();
+            gameState.selectedPlayerIndex = null;
+
+            alert(`${p.name} refused to continue negotiations.`);
+            renderSquadTable();
+            updateContacts();
+            updateContactsOverlay();
+        }
+
+        function requestLeave(index) {
+            const p = gameState.squad[index];
+            if(!p) return;
+            p.wantsToLeave = true;
+            p.status = 'Transfer Request';
+            alert(`${p.name} has contacted you and requested to leave the club.`);
+            updateContacts();
+        }
+
+        function refuseRenew(index) {
+            const p = gameState.squad[index];
+            if(!p) return;
+            p.refusesRenew = true;
+            alert(`${p.name} has informed you they will not renew their contract.`);
+            updateContacts();
         }
 
         function updateStadiumDisplay() {
@@ -2298,6 +2755,10 @@
             renderSquadTable(); 
             renderTopScorers(); 
             updateStadiumDisplay(); 
+
+            if (gameState.matchweek < gameState.totalMatchweeks || gameState.cupStatus === 'Active' || gameState.cup2Status === 'Active') {
+                determineNextFixture();
+            }
             
             if(isTransferWindowOpen() && gameState.matchweek < gameState.totalMatchweeks) {
                 if(Math.random() < 0.35 && gameState.squad.length > 15) {
@@ -2939,6 +3400,7 @@
             }
 
             gameState.kitURL = currentKitDataURL;
+            currentKitDataURL = gameState.kitURL;
             
             gameState.badge.shape = document.getElementById('new-badge-shape').value;
             gameState.badge.text = document.getElementById('new-badge-text').value.substring(0, 3).toUpperCase();
