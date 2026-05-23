@@ -336,8 +336,14 @@
         <div class="color-group">
             <div style="flex: 1.2; background: var(--header-bg); padding: 15px; border-radius: 5px; color: var(--text-light); display: flex; flex-direction: column; justify-content: center;">
                 <label style="text-align: center; margin-bottom:15px; font-size: 16px;">Team Kit</label>
-                <button onclick="openKitDesigner('setup')" style="margin-top:0;">🎨 Design Your Kit</button>
-                <button onclick="clearKitDesign('setup')" style="background-color: var(--danger); margin-top:10px;">Reset to Default</button>
+                <button onclick="openKitDesigner('setup','team')" style="margin-top:0;">🎨 Design Your Kit</button>
+                <button onclick="clearKitDesign('setup','team')" style="background-color: var(--danger); margin-top:10px;">Reset to Default</button>
+            </div>
+
+            <div style="flex: 1.2; background: var(--header-bg); padding: 15px; border-radius: 5px; color: var(--text-light); display: flex; flex-direction: column; justify-content: center;">
+                <label style="text-align: center; margin-bottom:15px; font-size: 16px;">Goalkeeper Kit</label>
+                <button onclick="openKitDesigner('setup','gk')" style="margin-top:0;">🧤 Design GK Kit</button>
+                <button onclick="clearKitDesign('setup','gk')" style="background-color: var(--danger); margin-top:10px;">Reset GK Kit</button>
             </div>
 
             <div style="flex: 1.2; background: var(--header-bg); padding: 15px; border-radius: 5px; color: var(--text-light);">
@@ -376,6 +382,11 @@
                     <div id="setup-shirt-preview" class="shirt-preview">
                         <div id="setup-badge-preview" class="badge-overlay">AFC</div>
                     </div>
+                    <p style="margin: 8px 0 0; text-align: center; font-size: 13px; color: var(--text-light);">Outfield Kit</p>
+                    <div id="setup-gk-shirt-preview" class="shirt-preview" style="margin-top: 10px;">
+                        <div id="setup-gk-badge-preview" class="badge-overlay">AFC</div>
+                    </div>
+                    <p style="margin: 8px 0 0; text-align: center; font-size: 13px; color: var(--text-light);">GK Kit</p>
                 </div>
             </div>
         </div>
@@ -703,8 +714,14 @@
         <div class="color-group">
             <div style="flex: 1.2; background: var(--header-bg); padding: 15px; border-radius: 5px; color: var(--text-light); display: flex; flex-direction: column; justify-content: center;">
                 <label style="text-align: center; margin-bottom:15px; font-size: 16px;">Team Kit</label>
-                <button onclick="openKitDesigner('offseason')" style="margin-top:0;">🎨 Design Your Kit</button>
-                <button onclick="clearKitDesign('offseason')" style="background-color: var(--danger); margin-top:10px;">Reset to Default</button>
+                <button onclick="openKitDesigner('offseason','team')" style="margin-top:0;">🎨 Design Your Kit</button>
+                <button onclick="clearKitDesign('offseason','team')" style="background-color: var(--danger); margin-top:10px;">Reset to Default</button>
+            </div>
+
+            <div style="flex: 1.2; background: var(--header-bg); padding: 15px; border-radius: 5px; color: var(--text-light); display: flex; flex-direction: column; justify-content: center;">
+                <label style="text-align: center; margin-bottom:15px; font-size: 16px;">Goalkeeper Kit</label>
+                <button onclick="openKitDesigner('offseason','gk')" style="margin-top:0;">🧤 Design GK Kit</button>
+                <button onclick="clearKitDesign('offseason','gk')" style="background-color: var(--danger); margin-top:10px;">Reset GK Kit</button>
             </div>
 
             <div style="flex: 1.2; background: var(--header-bg); padding: 15px; border-radius: 5px; color: var(--text-light);">
@@ -730,10 +747,10 @@
                 <label style="display:flex; justify-content:space-between;"><span>Size:</span> <span id="offseason-val-size">25</span></label>
                 <input type="range" id="new-badge-size" min="15" max="50" value="25" oninput="updateKitPreview('offseason')">
 
-                <label style="display:flex; justify-content:space-between; margin-top:5px;"><span>Left/Right (X):</span> <span id="setup-val-x">70</span></label>
+                <label style="display:flex; justify-content:space-between; margin-top:5px;"><span>Left/Right (X):</span> <span id="offseason-val-x">70</span></label>
                 <input type="range" id="new-badge-x" min="20" max="80" value="70" oninput="updateKitPreview('offseason')">
 
-                <label style="display:flex; justify-content:space-between; margin-top:5px;"><span>Up/Down (Y):</span> <span id="setup-val-y">35</span></label>
+                <label style="display:flex; justify-content:space-between; margin-top:5px;"><span>Up/Down (Y):</span> <span id="offseason-val-y">35</span></label>
                 <input type="range" id="new-badge-y" min="20" max="80" value="35" oninput="updateKitPreview('offseason')">
             </div>
 
@@ -743,6 +760,11 @@
                     <div id="offseason-shirt-preview" class="shirt-preview">
                         <div id="offseason-badge-preview" class="badge-overlay">AFC</div>
                     </div>
+                    <p style="margin: 8px 0 0; text-align: center; font-size: 13px; color: var(--text-light);">Outfield Kit</p>
+                    <div id="offseason-gk-shirt-preview" class="shirt-preview" style="margin-top: 10px;">
+                        <div id="offseason-gk-badge-preview" class="badge-overlay">AFC</div>
+                    </div>
+                    <p style="margin: 8px 0 0; text-align: center; font-size: 13px; color: var(--text-light);">GK Kit</p>
                 </div>
             </div>
         </div>
@@ -760,22 +782,66 @@
     </div>
 
     <div id="kit-designer-overlay">
-        <div id="kit-designer-modal">
+        <div id="kit-designer-modal" style="max-height: 90vh; overflow-y: auto; padding: 20px;">
             <h3 style="margin-top:0;">🎨 Paint Your Kit</h3>
             
-            <div class="kd-tools">
+            <div class="kd-tools" style="flex-wrap: wrap; gap:6px; align-items: center; justify-content: center;">
+                <button class="kd-tool-btn active" id="kd-target-team" onclick="setKDTarget('team')">Team Kit</button>
+                <button class="kd-tool-btn" id="kd-target-gk" onclick="setKDTarget('gk')">GK Kit</button>
+                <button class="kd-tool-btn" id="kd-btn-shape" onclick="setKDTool('shape')">Edit Shape</button>
+                <select id="kd-pattern" onchange="applyKDPattern()" style="min-width: 120px; padding: 8px; border-radius: 5px; border: 1px solid #ccc; background: #fff; color: #333;">
+                    <option value="Plain">Plain</option>
+                    <option value="Halves">Halves</option>
+                    <option value="Stripes">Vertical Stripes</option>
+                    <option value="Diagonal">Diagonal</option>
+                    <option value="Chest Band">Chest Band</option>
+                </select>
                 <input type="color" id="kd-color" value="#1abc9c" style="width:40px; height:35px; padding:0; border:none;">
-                <input type="range" id="kd-size" min="1" max="40" value="8" style="width:80px;">
+                <input type="color" id="kd-color-secondary" value="#ffffff" style="width:40px; height:35px; padding:0; border:none;">
+                <div id="kd-stripe-editor" style="display:none; gap:8px; align-items:center; flex-wrap: wrap;">
+                    <select id="kd-stripe-select" onchange="selectKDStripe()" style="min-width:120px; padding:8px; border-radius:5px; border:1px solid #ccc; background:#fff; color:#333;">
+                        <option value="0">Stripe 1</option>
+                        <option value="1">Stripe 2</option>
+                        <option value="2">Stripe 3</option>
+                        <option value="3">Stripe 4</option>
+                        <option value="4">Stripe 5</option>
+                    </select>
+                    <input type="color" id="kd-stripe-color" value="#ffffff" onchange="updateKDSelectedStripe()" title="Selected stripe color">
+                </div>
+                <div id="kd-stripe-controls" style="display:none; gap:10px; flex-wrap: wrap; align-items:center; max-width:680px;">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:12px;">
+                        Width <span id="kd-stripe-width-value">15%</span>
+                        <input type="range" id="kd-stripe-width" min="0.05" max="0.3" step="0.01" value="0.15" style="width:120px;" oninput="updateKDSelectedStripe()">
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; font-size:12px;">
+                        Curve <span id="kd-stripe-curve-value">0</span>
+                        <input type="range" id="kd-stripe-curve" min="-0.4" max="0.4" step="0.05" value="0" style="width:120px;" oninput="updateKDSelectedStripe()">
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; font-size:12px;">
+                        Bend <span id="kd-stripe-curve-dir-value">0</span>
+                        <input type="range" id="kd-stripe-curve-dir" min="-1" max="1" step="0.05" value="0" style="width:120px;" oninput="updateKDSelectedStripe()">
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; font-size:12px;">
+                        Top <span id="kd-stripe-top-value">10%</span>
+                        <input type="range" id="kd-stripe-top" min="0" max="0.8" step="0.01" value="0.10" style="width:120px;" oninput="updateKDSelectedStripe()">
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; font-size:12px;">
+                        Bottom <span id="kd-stripe-bottom-value">90%</span>
+                        <input type="range" id="kd-stripe-bottom" min="0.2" max="1" step="0.01" value="0.90" style="width:120px;" oninput="updateKDSelectedStripe()">
+                    </label>
+                </div>
+                <input type="range" id="kd-size" min="1" max="40" value="8" style="width:120px;">
                 <button class="kd-tool-btn active" id="kd-btn-brush" onclick="setKDTool('brush')">Brush</button>
                 <button class="kd-tool-btn" id="kd-btn-eraser" onclick="setKDTool('eraser')">Eraser</button>
-                <button class="kd-tool-btn" onclick="fillKDCanvas()">Fill Shirt</button>
+                <button class="kd-tool-btn" onclick="fillKDCanvas()">Fill Pattern</button>
             </div>
+            <div style="font-size:13px; color:#555; margin-bottom:8px;">Select a pattern, click <strong>Edit Shape</strong>, then drag the white handles to reshape it.</div>
             
             <div style="text-align: center; margin: 15px 0;">
                 <canvas id="kd-canvas" width="280" height="280"></canvas>
             </div>
             
-            <div style="display:flex; gap:10px;">
+            <div style="display:flex; gap:10px; flex-wrap: wrap; justify-content: center;">
                 <button onclick="saveKitDesign()" style="margin-top:0;">Save Kit</button>
                 <button onclick="closeKitDesigner()" style="background: #95a5a6; margin-top:0;">Cancel</button>
             </div>
@@ -784,32 +850,47 @@
 
     <script>
         // --- KIT DESIGNER LOGIC ---
-        let currentKitDataURL = null;
+        let currentTeamKitDataURL = null;
+        let currentGKKitDataURL = null;
         let kitDesignerSource = 'setup';
+        let kitDesignerTarget = 'team';
         
         let kdCanvas = document.getElementById('kd-canvas');
         let kdCtx = kdCanvas.getContext('2d');
         let kdDrawing = false;
         let kdTool = 'brush';
+        let kdPattern = 'Plain';
+        let kdActiveHandle = null;
+        let kdSelectedStripeIndex = 0;
+        const kdHandleRadius = 10;
+        function createDefaultStripes() {
+            return [
+                { offset: 0.08, width: 0.12, color: '#ffffff', curve: 0, curveDir: 0 },
+                { offset: 0.22, width: 0.12, color: '#ffffff', curve: 0, curveDir: 0 },
+                { offset: 0.36, width: 0.12, color: '#ffffff', curve: 0, curveDir: 0 },
+                { offset: 0.50, width: 0.12, color: '#ffffff', curve: 0, curveDir: 0 },
+                { offset: 0.64, width: 0.12, color: '#ffffff', curve: 0, curveDir: 0 }
+            ];
+        }
+        const kdPatternState = {
+            Plain: {},
+            Halves: { split: 0.5 },
+            Stripes: { stripes: createDefaultStripes(), top: 0.1, bottom: 0.9 },
+            Diagonal: { x: 0.8 },
+            'Chest Band': { left: 0.1, right: 0.9, top: 0.35, bottom: 0.53 }
+        };
 
-        function openKitDesigner(source) {
+        function openKitDesigner(source, target = 'team') {
             kitDesignerSource = source;
             document.getElementById('kit-designer-overlay').style.display = 'flex';
             setKDTool('brush');
-            
-            if (!currentKitDataURL && gameState.kitURL) {
-                currentKitDataURL = gameState.kitURL;
-            }
+            setKDTarget(target);
+            refreshKDStripeControls();
 
-            kdCtx.clearRect(0, 0, kdCanvas.width, kdCanvas.height);
-            if (currentKitDataURL) {
-                let img = new Image();
-                img.onload = function() {
-                    kdCtx.drawImage(img, 0, 0);
-                }
-                img.src = currentKitDataURL;
-            } else {
-                fillKDCanvas('#e74c3c');
+            if (target === 'team' && !currentTeamKitDataURL && gameState.kitURL) {
+                currentTeamKitDataURL = gameState.kitURL;
+            } else if (target === 'gk' && !currentGKKitDataURL && gameState.gkKitURL) {
+                currentGKKitDataURL = gameState.gkKitURL;
             }
         }
 
@@ -817,55 +898,382 @@
             document.getElementById('kit-designer-overlay').style.display = 'none';
         }
 
+        function setKDTarget(target) {
+            kitDesignerTarget = target;
+            document.getElementById('kd-target-team').classList.toggle('active', target === 'team');
+            document.getElementById('kd-target-gk').classList.toggle('active', target === 'gk');
+
+            let url = target === 'team' ? (currentTeamKitDataURL || gameState.kitURL) : (currentGKKitDataURL || gameState.gkKitURL);
+            loadKDImage(url);
+        }
+
+        function loadKDImage(url) {
+            kdCtx.clearRect(0, 0, kdCanvas.width, kdCanvas.height);
+            if (url) {
+                let img = new Image();
+                img.onload = function() {
+                    kdCtx.drawImage(img, 0, 0);
+                    if (kdTool === 'shape') drawKDOverlay();
+                }
+                img.src = url;
+            } else {
+                fillKDCanvas();
+            }
+        }
+
         function setKDTool(tool) {
             kdTool = tool;
             document.getElementById('kd-btn-brush').classList.remove('active');
             document.getElementById('kd-btn-eraser').classList.remove('active');
+            document.getElementById('kd-btn-shape').classList.remove('active');
             document.getElementById('kd-btn-' + tool).classList.add('active');
+            kdCanvas.style.cursor = tool === 'shape' ? 'move' : 'crosshair';
+            if (tool === 'shape') {
+                drawKDOverlay();
+                refreshKDStripeControls();
+            } else if (gameState.kitURL || gameState.gkKitURL) {
+                setKDTarget(kitDesignerTarget);
+            } else {
+                fillKDCanvas();
+            }
         }
 
-        function fillKDCanvas(color = null) {
+        function applyKDPattern() {
+            fillKDCanvas();
+            refreshKDStripeControls();
+        }
+
+        function refreshKDStripeControls() {
+            let stripeEditor = document.getElementById('kd-stripe-editor');
+            let stripeControls = document.getElementById('kd-stripe-controls');
+            let enabled = kdPattern === 'Stripes';
+            stripeEditor.style.display = enabled ? 'flex' : 'none';
+            stripeControls.style.display = enabled ? 'flex' : 'none';
+            if (!enabled) return;
+
+            let state = kdPatternState.Stripes;
+            kdSelectedStripeIndex = Math.min(kdSelectedStripeIndex, state.stripes.length - 1);
+            let stripe = state.stripes[kdSelectedStripeIndex];
+            document.getElementById('kd-stripe-select').value = kdSelectedStripeIndex;
+            document.getElementById('kd-stripe-color').value = stripe.color || document.getElementById('kd-color-secondary').value;
+            document.getElementById('kd-stripe-width').value = stripe.width;
+            document.getElementById('kd-stripe-width-value').textContent = Math.round(stripe.width * 100) + '%';
+            document.getElementById('kd-stripe-curve').value = stripe.curve;
+            document.getElementById('kd-stripe-curve-value').textContent = stripe.curve.toFixed(2);
+            document.getElementById('kd-stripe-curve-dir').value = stripe.curveDir || 0;
+            document.getElementById('kd-stripe-curve-dir-value').textContent = (stripe.curveDir || 0).toFixed(2);
+            document.getElementById('kd-stripe-top').value = state.top;
+            document.getElementById('kd-stripe-bottom').value = state.bottom;
+            document.getElementById('kd-stripe-top-value').textContent = Math.round(state.top * 100) + '%';
+            document.getElementById('kd-stripe-bottom-value').textContent = Math.round(state.bottom * 100) + '%';
+        }
+
+        function selectKDStripe() {
+            kdSelectedStripeIndex = parseInt(document.getElementById('kd-stripe-select').value, 10);
+            refreshKDStripeControls();
+            fillKDCanvas();
+        }
+
+        function updateKDSelectedStripe() {
+            let state = kdPatternState.Stripes;
+            let stripe = state.stripes[kdSelectedStripeIndex];
+            if (!stripe) return;
+            stripe.color = document.getElementById('kd-stripe-color').value;
+            stripe.width = parseFloat(document.getElementById('kd-stripe-width').value);
+            stripe.curve = parseFloat(document.getElementById('kd-stripe-curve').value);
+            stripe.curveDir = parseFloat(document.getElementById('kd-stripe-curve-dir').value);
+            let topValue = parseFloat(document.getElementById('kd-stripe-top').value);
+            let bottomValue = parseFloat(document.getElementById('kd-stripe-bottom').value);
+            state.top = Math.min(Math.max(0, topValue), Math.max(0.05, bottomValue - 0.05));
+            state.bottom = Math.max(Math.min(1, bottomValue), Math.min(0.95, state.top + 0.05));
+            document.getElementById('kd-stripe-width-value').textContent = Math.round(stripe.width * 100) + '%';
+            document.getElementById('kd-stripe-curve-value').textContent = stripe.curve.toFixed(2);
+            document.getElementById('kd-stripe-curve-dir-value').textContent = stripe.curveDir.toFixed(2);
+            document.getElementById('kd-stripe-top-value').textContent = Math.round(state.top * 100) + '%';
+            document.getElementById('kd-stripe-bottom-value').textContent = Math.round(state.bottom * 100) + '%';
+            fillKDCanvas();
+        }
+
+        function fillKDCanvas(pattern = null) {
             kdCtx.globalCompositeOperation = "source-over";
-            kdCtx.fillStyle = color || document.getElementById('kd-color').value;
+            let primary = document.getElementById('kd-color').value;
+            let secondary = document.getElementById('kd-color-secondary').value;
+            let style = pattern || document.getElementById('kd-pattern').value;
+            kdPattern = style;
+            let state = kdPatternState[style] || {};
+
+            kdCtx.clearRect(0, 0, kdCanvas.width, kdCanvas.height);
+            kdCtx.fillStyle = primary;
             kdCtx.fillRect(0, 0, kdCanvas.width, kdCanvas.height);
+
+            if (style === 'Halves') {
+                kdCtx.fillStyle = secondary;
+                kdCtx.fillRect(0, 0, kdCanvas.width * state.split, kdCanvas.height);
+            } else if (style === 'Stripes') {
+                let top = kdCanvas.height * state.top;
+                let bandHeight = kdCanvas.height * (state.bottom - state.top);
+                state.stripes.forEach((stripe) => {
+                    let left = kdCanvas.width * stripe.offset;
+                    let stripeWidth = kdCanvas.width * stripe.width;
+                    let curveAmount = stripe.curve * stripeWidth;
+                    let dirOffset = stripe.curveDir * stripeWidth * 0.4;
+                    kdCtx.fillStyle = stripe.color || secondary;
+                    kdCtx.beginPath();
+                    if (Math.abs(curveAmount) > 0.001 || Math.abs(dirOffset) > 0.001) {
+                        kdCtx.moveTo(left, top);
+                        kdCtx.quadraticCurveTo(left + dirOffset + curveAmount, top + bandHeight / 2, left, top + bandHeight);
+                        kdCtx.lineTo(left + stripeWidth, top + bandHeight);
+                        kdCtx.quadraticCurveTo(left + stripeWidth + dirOffset - curveAmount, top + bandHeight / 2, left + stripeWidth, top);
+                    } else {
+                        kdCtx.rect(left, top, stripeWidth, bandHeight);
+                    }
+                    kdCtx.closePath();
+                    kdCtx.fill();
+                });
+            } else if (style === 'Diagonal') {
+                kdCtx.fillStyle = secondary;
+                kdCtx.beginPath();
+                kdCtx.moveTo(0, 0);
+                kdCtx.lineTo(kdCanvas.width * state.x, kdCanvas.height);
+                kdCtx.lineTo(0, kdCanvas.height);
+                kdCtx.closePath();
+                kdCtx.fill();
+            } else if (style === 'Chest Band') {
+                kdCtx.fillStyle = secondary;
+                let left = kdCanvas.width * state.left;
+                let top = kdCanvas.height * state.top;
+                let width = kdCanvas.width * (state.right - state.left);
+                let height = kdCanvas.height * (state.bottom - state.top);
+                kdCtx.fillRect(left, top, width, height);
+            }
+
+            if (kdTool === 'shape') drawKDOverlay();
         }
 
-        function saveKitDesign() {
-            currentKitDataURL = kdCanvas.toDataURL();
-            closeKitDesigner();
-            updateKitPreview(kitDesignerSource);
+        function drawKDOverlay() {
+            if (kdTool !== 'shape' || kdPattern === 'Plain') return;
+            let w = kdCanvas.width;
+            let h = kdCanvas.height;
+            let state = kdPatternState[kdPattern];
+
+            kdCtx.save();
+            kdCtx.lineWidth = 2;
+            kdCtx.strokeStyle = '#000';
+            kdCtx.fillStyle = 'rgba(255,255,255,0.8)';
+
+            const drawHandle = (x, y) => {
+                kdCtx.beginPath();
+                kdCtx.arc(x, y, kdHandleRadius, 0, Math.PI * 2);
+                kdCtx.fill();
+                kdCtx.stroke();
+            };
+
+            if (kdPattern === 'Halves') {
+                drawHandle(w * state.split, h * 0.5);
+            } else if (kdPattern === 'Stripes') {
+                let stripe = state.stripes[kdSelectedStripeIndex] || state.stripes[0];
+                let left = w * stripe.offset;
+                let right = w * (stripe.offset + stripe.width);
+                let top = h * state.top;
+                let bottom = h * state.bottom;
+                kdCtx.strokeStyle = '#ffdc00';
+                kdCtx.strokeRect(left - 1, top - 1, right - left + 2, bottom - top + 2);
+                drawHandle(left, top + (bottom - top) / 2);
+                drawHandle(right, top + (bottom - top) / 2);
+                drawHandle((left + right) / 2, top + (bottom - top) / 2);
+            } else if (kdPattern === 'Diagonal') {
+                drawHandle(w * state.x, h);
+            } else if (kdPattern === 'Chest Band') {
+                let left = w * state.left;
+                let right = w * state.right;
+                let top = h * state.top;
+                let bottom = h * state.bottom;
+                kdCtx.strokeStyle = '#000';
+                kdCtx.strokeRect(left, top, right - left, bottom - top);
+                drawHandle(left, top);
+                drawHandle(right, top);
+                drawHandle(left, bottom);
+                drawHandle(right, bottom);
+            }
+
+            kdCtx.restore();
         }
 
-        function clearKitDesign(source) {
-            currentKitDataURL = null;
-            updateKitPreview(source);
-        }
-
-        function startPos(e) {
-            kdDrawing = true;
-            drawKit(e);
-        }
-        function endPos() {
-            kdDrawing = false;
-            kdCtx.beginPath();
-        }
-        function drawKit(e) {
-            if (!kdDrawing) return;
-            
+        function getKDEventPos(e) {
             let rect = kdCanvas.getBoundingClientRect();
             let clientX = e.clientX;
             let clientY = e.clientY;
-            
             if (e.touches && e.touches.length > 0) {
                 clientX = e.touches[0].clientX;
                 clientY = e.touches[0].clientY;
             }
+            return {
+                x: (clientX - rect.left) * kdCanvas.width / rect.width,
+                y: (clientY - rect.top) * kdCanvas.height / rect.height
+            };
+        }
 
-            let scaleX = kdCanvas.width / rect.width;
-            let scaleY = kdCanvas.height / rect.height;
-            
-            let x = (clientX - rect.left) * scaleX;
-            let y = (clientY - rect.top) * scaleY;
+        function getKDHandleUnderPoint(x, y) {
+            let w = kdCanvas.width;
+            let h = kdCanvas.height;
+            let state = kdPatternState[kdPattern];
+            const dist = (x1, y1, x2, y2) => Math.hypot(x1 - x2, y1 - y2);
+
+            const threshold = kdHandleRadius * 2.5;
+            if (kdPattern === 'Halves') {
+                let hx = w * state.split, hy = h * 0.5;
+                if (dist(x, y, hx, hy) < threshold) return 'Halves';
+            } else if (kdPattern === 'Stripes') {
+                for (let i = 0; i < state.stripes.length; i++) {
+                    let stripe = state.stripes[i];
+                    let left = w * stripe.offset;
+                    let right = w * (stripe.offset + stripe.width);
+                    let top = h * state.top;
+                    let bottom = h * state.bottom;
+                    if (dist(x, y, left, (top + bottom) / 2) < threshold) return `Stripe${i}Left`;
+                    if (dist(x, y, right, (top + bottom) / 2) < threshold) return `Stripe${i}Right`;
+                    if (x >= left && x <= right && y >= top && y <= bottom) return `Stripe${i}Move`;
+                }
+            } else if (kdPattern === 'Diagonal') {
+                let hx = w * state.x, hy = h;
+                if (dist(x, y, hx, hy) < threshold) return 'Diagonal';
+                // allow clicks near diagonal line to select the handle
+                let lineDist = Math.abs((h * x) - (w * y)) / Math.sqrt(w*w + h*h);
+                if (lineDist < threshold) return 'Diagonal';
+            } else if (kdPattern === 'Chest Band') {
+                let left = w * state.left;
+                let right = w * state.right;
+                let top = h * state.top;
+                let bottom = h * state.bottom;
+                if (dist(x, y, left, top) < threshold) return 'ChestTopLeft';
+                if (dist(x, y, right, top) < threshold) return 'ChestTopRight';
+                if (dist(x, y, left, bottom) < threshold) return 'ChestBottomLeft';
+                if (dist(x, y, right, bottom) < threshold) return 'ChestBottomRight';
+                if (x >= left && x <= right && y >= top && y <= bottom) return 'ChestMove';
+            }
+            return null;
+        }
+
+        function updateKDShape(handle, x, y) {
+            let w = kdCanvas.width;
+            let h = kdCanvas.height;
+            let state = kdPatternState[kdPattern];
+
+            if (handle === 'Halves') {
+                state.split = Math.min(0.9, Math.max(0.1, x / w));
+            } else if (handle.startsWith('Stripe')) {
+                let match = handle.match(/^Stripe(\d+)(Left|Right|Move)$/);
+                if (match) {
+                    let index = parseInt(match[1], 10);
+                    kdSelectedStripeIndex = index;
+                    let stripe = state.stripes[index];
+                    if (!stripe) return;
+
+                    if (match[2] === 'Left') {
+                        let newLeft = Math.min(x, w * (stripe.offset + stripe.width - 0.05));
+                        stripe.offset = Math.max(0, newLeft / w);
+                    } else if (match[2] === 'Right') {
+                        stripe.width = Math.min(1 - stripe.offset, Math.max(0.05, x / w - stripe.offset));
+                    } else if (match[2] === 'Move') {
+                        let center = Math.min(Math.max(x / w, stripe.width / 2), 1 - stripe.width / 2);
+                        stripe.offset = center - stripe.width / 2;
+                    }
+                    refreshKDStripeControls();
+                }
+            } else if (handle === 'Diagonal') {
+                state.x = Math.min(0.95, Math.max(0.2, x / w));
+            } else if (handle === 'ChestTopLeft') {
+                let newLeft = Math.min(x / w, state.right - 0.05);
+                state.left = Math.max(0, newLeft);
+                let newTop = Math.min(y / h, state.bottom - 0.05);
+                state.top = Math.max(0, newTop);
+            } else if (handle === 'ChestTopRight') {
+                let newRight = Math.max(x / w, state.left + 0.05);
+                state.right = Math.min(1, newRight);
+                let newTop = Math.min(y / h, state.bottom - 0.05);
+                state.top = Math.max(0, newTop);
+            } else if (handle === 'ChestBottomLeft') {
+                let newLeft = Math.min(x / w, state.right - 0.05);
+                state.left = Math.max(0, newLeft);
+                let newBottom = Math.max(y / h, state.top + 0.05);
+                state.bottom = Math.min(1, newBottom);
+            } else if (handle === 'ChestBottomRight') {
+                let newRight = Math.max(x / w, state.left + 0.05);
+                state.right = Math.min(1, newRight);
+                let newBottom = Math.max(y / h, state.top + 0.05);
+                state.bottom = Math.min(1, newBottom);
+            } else if (handle === 'ChestMove') {
+                let bandWidth = state.right - state.left;
+                let bandHeight = state.bottom - state.top;
+                let left = Math.min(Math.max(0, x / w - bandWidth / 2), 1 - bandWidth);
+                let top = Math.min(Math.max(0, y / h - bandHeight / 2), 1 - bandHeight);
+                state.left = left;
+                state.right = left + bandWidth;
+                state.top = top;
+                state.bottom = top + bandHeight;
+            }
+
+            fillKDCanvas();
+        }
+
+        function saveKitDesign() {
+            let savedTool = kdTool;
+            if (kdTool === 'shape') {
+                kdTool = 'brush';
+                fillKDCanvas();
+            }
+            if (kitDesignerTarget === 'team') {
+                currentTeamKitDataURL = kdCanvas.toDataURL();
+            } else {
+                currentGKKitDataURL = kdCanvas.toDataURL();
+            }
+            kdTool = savedTool;
+            closeKitDesigner();
+            updateKitPreview(kitDesignerSource);
+        }
+
+        function clearKitDesign(source, target = 'team') {
+            if (target === 'team') {
+                currentTeamKitDataURL = null;
+            } else {
+                currentGKKitDataURL = null;
+            }
+            updateKitPreview(source);
+        }
+
+        function startPos(e) {
+            let pos = getKDEventPos(e);
+
+            if (kdTool === 'shape') {
+                kdActiveHandle = getKDHandleUnderPoint(pos.x, pos.y);
+                if (kdActiveHandle) {
+                    kdDrawing = true;
+                    kdCanvas.style.cursor = 'grabbing';
+                }
+            } else {
+                kdDrawing = true;
+                kdCtx.beginPath();
+                kdCtx.moveTo(pos.x, pos.y);
+                drawKit(e);
+            }
+        }
+        function endPos() {
+            kdDrawing = false;
+            kdActiveHandle = null;
+            kdCtx.beginPath();
+            if (kdTool === 'shape') kdCanvas.style.cursor = 'move';
+        }
+        function drawKit(e) {
+            if (!kdDrawing) return;
+
+            let pos = getKDEventPos(e);
+
+            if (kdTool === 'shape') {
+                if (kdActiveHandle) {
+                    updateKDShape(kdActiveHandle, pos.x, pos.y);
+                }
+                return;
+            }
 
             kdCtx.lineWidth = document.getElementById('kd-size').value;
             kdCtx.lineCap = 'round';
@@ -878,14 +1286,19 @@
                 kdCtx.strokeStyle = document.getElementById('kd-color').value;
             }
 
-            kdCtx.lineTo(x, y);
+            kdCtx.lineTo(pos.x, pos.y);
             kdCtx.stroke();
             kdCtx.beginPath();
-            kdCtx.moveTo(x, y);
+            kdCtx.moveTo(pos.x, pos.y);
         }
 
         kdCanvas.addEventListener('mousedown', startPos);
         kdCanvas.addEventListener('mousemove', drawKit);
+        kdCanvas.addEventListener('mousemove', (e) => {
+            if (kdTool !== 'shape') return;
+            let pos = getKDEventPos(e);
+            kdCanvas.style.cursor = getKDHandleUnderPoint(pos.x, pos.y) ? 'grab' : 'move';
+        });
         kdCanvas.addEventListener('mouseup', endPos);
         kdCanvas.addEventListener('mouseout', endPos);
 
@@ -899,20 +1312,60 @@
             updateKitPreview('offseason');
         };
 
+        function hexToRgb(hex) {
+            hex = hex.replace('#', '');
+            if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+            return {
+                r: parseInt(hex.substr(0, 2), 16),
+                g: parseInt(hex.substr(2, 2), 16),
+                b: parseInt(hex.substr(4, 2), 16)
+            };
+        }
+
+        function getLuminance({ r, g, b }) {
+            let [R, G, B] = [r, g, b].map(v => {
+                v /= 255;
+                return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+            });
+            return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+        }
+
+        function getReadableBadgeTextColor(bgHex, textHex) {
+            let bg = hexToRgb(bgHex);
+            let text = hexToRgb(textHex);
+            let contrast = Math.abs(getLuminance(bg) - getLuminance(text));
+            if (contrast < 0.35) {
+                return getLuminance(bg) > 0.5 ? '#000000' : '#ffffff';
+            }
+            return textHex;
+        }
+
         function toggleTheme() {
             document.body.classList.toggle('dark-mode');
         }
 
         function updateKitPreview(screen) {
             let prefix = screen === 'setup' ? '' : 'new-';
-            let preview = document.getElementById(screen + '-shirt-preview');
+            let previewTeam = document.getElementById(screen + '-shirt-preview');
+            let previewGK = document.getElementById(screen + '-gk-shirt-preview');
             
-            if (currentKitDataURL) {
-                preview.style.backgroundImage = `url(${currentKitDataURL})`;
-                preview.style.backgroundColor = 'transparent';
+            let teamURL = currentTeamKitDataURL || gameState.kitURL;
+            let gkURL = currentGKKitDataURL || gameState.gkKitURL;
+
+            if (teamURL) {
+                previewTeam.style.backgroundImage = `url(${teamURL})`;
+                previewTeam.style.backgroundColor = 'transparent';
             } else {
-                preview.style.backgroundImage = 'none';
-                preview.style.backgroundColor = '#e74c3c'; // Default fallback red
+                previewTeam.style.backgroundImage = 'none';
+                previewTeam.style.backgroundColor = '#e74c3c';
+            }
+
+            if (gkURL) {
+                previewGK.style.backgroundImage = `url(${gkURL})`;
+                previewGK.style.backgroundColor = 'transparent';
+            } else {
+                previewGK.style.backgroundImage = 'none';
+                previewGK.style.backgroundColor = '#f1c40f';
             }
 
             let bShape = document.getElementById(prefix + 'badge-shape').value;
@@ -928,27 +1381,31 @@
             document.getElementById(screen + '-val-x').innerText = bX;
             document.getElementById(screen + '-val-y').innerText = bY;
 
+            let badgeTextColor = getReadableBadgeTextColor(bColor, bTextColor);
             let badgeDiv = document.getElementById(screen + '-badge-preview');
-            badgeDiv.innerText = bText;
-            badgeDiv.style.backgroundColor = bColor;
-            badgeDiv.style.color = bTextColor;
-            badgeDiv.style.width = bSize + 'px';
-            badgeDiv.style.height = bSize + 'px';
-            badgeDiv.style.fontSize = (bSize * 0.4) + 'px';
-            badgeDiv.style.left = bX + '%';
-            badgeDiv.style.top = bY + '%';
-            badgeDiv.style.transform = 'translate(-50%, -50%)';
+            let badgeGkDiv = document.getElementById(screen + '-gk-badge-preview');
+            [badgeDiv, badgeGkDiv].forEach(div => {
+                div.innerText = bText;
+                div.style.backgroundColor = bColor;
+                div.style.color = badgeTextColor;
+                div.style.width = bSize + 'px';
+                div.style.height = bSize + 'px';
+                div.style.fontSize = (bSize * 0.4) + 'px';
+                div.style.left = bX + '%';
+                div.style.top = bY + '%';
+                div.style.transform = 'translate(-50%, -50%)';
 
-            if (bShape === 'Circle') {
-                badgeDiv.style.borderRadius = '50%';
-                badgeDiv.style.clipPath = 'none';
-            } else if (bShape === 'Square') {
-                badgeDiv.style.borderRadius = '20%';
-                badgeDiv.style.clipPath = 'none';
-            } else if (bShape === 'Shield') {
-                badgeDiv.style.borderRadius = '0';
-                badgeDiv.style.clipPath = 'polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%)';
-            }
+                if (bShape === 'Circle') {
+                    div.style.borderRadius = '50%';
+                    div.style.clipPath = 'none';
+                } else if (bShape === 'Square') {
+                    div.style.borderRadius = '20%';
+                    div.style.clipPath = 'none';
+                } else if (bShape === 'Shield') {
+                    div.style.borderRadius = '0';
+                    div.style.clipPath = 'polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%)';
+                }
+            });
         }
 
         function applyGlobalBadge() {
@@ -1236,7 +1693,7 @@
         // --- GAME STATE ---
         const gameState = {
             manager: '', managerType: 'Custom', club: '', country: '', stadium: '', stadiumType: '', stadiumCap: 0,
-            kitURL: null, 
+            kitURL: null, gkKitURL: null,
             badge: { shape: 'Shield', color: '#f1c40f', textColor: '#000000', text: 'AFC', x: 70, y: 35, size: 25 },
             seasonYear: 2025, tier: 4, groupIndex: 0, budget: 3000000, sponsorIndex: 0,
             matchweek: 0, totalMatchweeks: 0, seasonTrainings: 0,
@@ -1301,8 +1758,10 @@
             gameState.stadium = document.getElementById('stadium-name').value || "Town Park";
             gameState.stadiumType = document.getElementById('stadium-type').value;
             
-            gameState.kitURL = currentKitDataURL;
-            currentKitDataURL = gameState.kitURL;
+            gameState.kitURL = currentTeamKitDataURL;
+            gameState.gkKitURL = currentGKKitDataURL;
+            currentTeamKitDataURL = gameState.kitURL;
+            currentGKKitDataURL = gameState.gkKitURL;
             gameState.badge.shape = document.getElementById('badge-shape').value;
             gameState.badge.text = document.getElementById('badge-text').value.substring(0, 3).toUpperCase();
             gameState.badge.color = document.getElementById('badge-color').value;
@@ -1433,8 +1892,12 @@
             let ovrBoost = gameState.managerType === 'Tactician' ? 2 : 0;
 
             for(let i=0; i<11; i++) {
+                let nameCountry = Math.random() < 0.6 ? gameState.country : getRandomCountry();
+                if (nameCountry === gameState.country && Math.random() < 0.2) {
+                    nameCountry = getRandomCountry();
+                }
                 gameState.squad.push({
-                    name: randomName(gameState.country), pos: newPositions[i], natPos: newPositions[i], 
+                    name: randomName(nameCountry), pos: newPositions[i], natPos: newPositions[i], 
                     ovr: Math.floor(Math.random() * (70 - 55 + 1)) + 55 + ovrBoost,
                     isStarting: true, goals: 0, contract: Math.floor(Math.random() * 3) + 1,
                     atkBias: Math.floor(Math.random() * 11) - 5,
@@ -1446,8 +1909,12 @@
             }
             for(let i=0; i<7; i++) {
                 let naturalPosition = i < 1 ? 'GK' : allPositions[Math.floor(Math.random() * allPositions.length)];
+                let nameCountry = Math.random() < 0.6 ? gameState.country : getRandomCountry();
+                if (nameCountry === gameState.country && Math.random() < 0.2) {
+                    nameCountry = getRandomCountry();
+                }
                 gameState.squad.push({
-                    name: randomName(gameState.country), pos: 'SUB', natPos: naturalPosition, 
+                    name: randomName(nameCountry), pos: 'SUB', natPos: naturalPosition, 
                     ovr: Math.floor(Math.random() * (68 - 50 + 1)) + 50 + ovrBoost,
                     isStarting: false, goals: 0, contract: Math.floor(Math.random() * 3) + 1,
                     atkBias: Math.floor(Math.random() * 11) - 5,
@@ -1956,6 +2423,8 @@
 
             const p = gameState.squad[index];
             const desired = p.ovr * 1000;
+            const currentDemand = gameState.negotiation.playerDemand;
+            const required = currentDemand ? Math.max(desired, currentDemand) : desired;
 
             gameState.negotiation.lastOffer = offer;
             gameState.negotiation.rounds++;
@@ -1965,7 +2434,7 @@
             document.getElementById('wage-input').value = '';
 
             let playerMessage = '';
-            if (offer >= desired) {
+            if (offer >= required) {
                 playerMessage = `<span style="color: #27ae60; font-size: 16px;">✓ Yes! This is a fair offer. I'll sign!</span>`;
                 document.getElementById('player-actions').style.display = 'block';
                 document.getElementById('player-actions').innerHTML = `<button class="btn-success" onclick="playerAccepts(${index})" style="width: 100%; padding: 10px;">Close Deal</button>`;
@@ -2057,6 +2526,10 @@
                 alert('No offer to accept');
                 return;
             }
+
+            // Deduct wage from budget when renewing a contract
+            gameState.budget -= lastOffer;
+            updateHeaderFinancials();
 
             // Update player contract and morale
             p.refusesRenew = false;
@@ -2210,14 +2683,15 @@
             const gkDot = document.createElement('div');
             gkDot.className = 'player-dot';
             
-            let bgStyle = currentKitDataURL ? `url(${currentKitDataURL})` : 'none';
-            let bgColor = currentKitDataURL ? 'transparent' : '#f1c40f'; // GK gets yellow if no custom kit (fallback)
+            let gkURL = currentGKKitDataURL || gameState.gkKitURL;
+            let gkBgStyle = gkURL ? `url(${gkURL})` : 'none';
+            let gkBgColor = gkURL ? 'transparent' : '#f1c40f';
 
-            gkDot.style.backgroundImage = bgStyle;
+            gkDot.style.backgroundImage = gkBgStyle;
             gkDot.style.backgroundSize = 'cover';
-            gkDot.style.backgroundColor = bgColor;
+            gkDot.style.backgroundColor = gkBgColor;
             
-            gkDot.style.color = currentKitDataURL ? '#fff' : '#000';
+            gkDot.style.color = gkURL ? '#fff' : '#000';
             gkDot.style.borderColor = '#000';
             gkDot.innerText = layout.pos[0];
             gkLine.appendChild(gkDot);
@@ -2230,8 +2704,9 @@
                 for(let i = 0; i < numPlayers; i++) {
                     const dot = document.createElement('div'); dot.className = 'player-dot';
                     
-                    let bgStyleOut = currentKitDataURL ? `url(${currentKitDataURL})` : 'none';
-                    let bgColorOut = currentKitDataURL ? 'transparent' : '#e74c3c';
+                    let teamURL = currentTeamKitDataURL || gameState.kitURL;
+                    let bgStyleOut = teamURL ? `url(${teamURL})` : 'none';
+                    let bgColorOut = teamURL ? 'transparent' : '#e74c3c';
 
                     dot.style.backgroundImage = bgStyleOut;
                     dot.style.backgroundSize = 'cover';
@@ -2414,6 +2889,10 @@
         let isLastMatchCup = false;
 
         function startLiveMatch() {
+            if (matchInterval) return;
+            const playBtn = document.getElementById('play-match-btn');
+            playBtn.disabled = true;
+            playBtn.blur();
             document.getElementById('live-match-overlay').style.display = 'flex';
             
             if(gameState.isHomeGame) {
@@ -2426,7 +2905,9 @@
             
             document.getElementById('lm-score').innerText = '0 - 0';
             document.getElementById('lm-events').innerHTML = '<div>KICK OFF!</div>';
-            document.getElementById('lm-close-btn').style.display = 'none';
+            const closeBtn = document.getElementById('lm-close-btn');
+            closeBtn.style.display = 'none';
+            closeBtn.disabled = false;
             document.getElementById('last-match-result').style.display = 'none';
             
             let minute = 0;
@@ -2558,6 +3039,7 @@
 
                 if(minute >= 90 + addedTime) {
                     clearInterval(matchInterval);
+                    matchInterval = null;
                     log.innerHTML += `<div style="margin-top:10px; font-weight:bold;">FULL TIME!</div>`;
                     document.getElementById('lm-close-btn').style.display = 'block';
                     processMatchResult(userGoals, oppGoals);
@@ -2688,7 +3170,15 @@
         }
 
         function closeLiveMatch() {
+            const closeBtn = document.getElementById('lm-close-btn');
+            if (closeBtn.disabled) return;
+            closeBtn.disabled = true;
+            closeBtn.blur();
             document.getElementById('live-match-overlay').style.display = 'none';
+            const playBtn = document.getElementById('play-match-btn');
+            const enablePlayBtn = () => { playBtn.disabled = false; };
+            window.addEventListener('keyup', enablePlayBtn, { once: true });
+            setTimeout(() => { if (playBtn.disabled) playBtn.disabled = false; }, 500);
             const resBox = document.getElementById('last-match-result');
             resBox.style.display = 'block';
             resBox.className = isLastMatchCup ? 'match-result-box result-cup' : 'match-result-box result-league';
@@ -2756,7 +3246,7 @@
             renderTopScorers(); 
             updateStadiumDisplay(); 
 
-            if (gameState.matchweek < gameState.totalMatchweeks || gameState.cupStatus === 'Active' || gameState.cup2Status === 'Active') {
+            if (gameState.matchweek <= gameState.totalMatchweeks || gameState.cupStatus === 'Active' || gameState.cup2Status === 'Active') {
                 determineNextFixture();
             }
             
@@ -2792,7 +3282,6 @@
                 }
             }
 
-            determineNextFixture();
         }
 
         function updateTeamStats(team, gf, ga) {
@@ -3117,8 +3606,7 @@
             const promotedPlayer = gameState.academy.splice(index, 1)[0];
             promotedPlayer.pos = 'SUB'; 
             promotedPlayer.isStarting = false;
-            let potMin = parseInt(promotedPlayer.potential.split('-')[0]);
-            promotedPlayer.ovr = potMin - Math.floor(Math.random() * 5) - 2; 
+            promotedPlayer.ovr = Math.floor(Math.random() * 16) + 50; // start academy promotions between 50 and 65
             promotedPlayer.goals = 0;
             promotedPlayer.contract = 3;
             promotedPlayer.atkBias = Math.floor(Math.random() * 11) - 5;
@@ -3349,9 +3837,7 @@
             document.getElementById('growth-log').innerHTML = growthHtml;
             document.getElementById('last-match-result').style.display = 'none';
             
-            if(currentKitDataURL) {
-                updateKitPreview('offseason');
-            }
+            updateKitPreview('offseason');
 
             offseasonSeconds = 600;
             updateTimerDisplay();
@@ -3399,8 +3885,10 @@
                 }
             }
 
-            gameState.kitURL = currentKitDataURL;
-            currentKitDataURL = gameState.kitURL;
+            gameState.kitURL = currentTeamKitDataURL;
+            gameState.gkKitURL = currentGKKitDataURL;
+            currentTeamKitDataURL = gameState.kitURL;
+            currentGKKitDataURL = gameState.gkKitURL;
             
             gameState.badge.shape = document.getElementById('new-badge-shape').value;
             gameState.badge.text = document.getElementById('new-badge-text').value.substring(0, 3).toUpperCase();
