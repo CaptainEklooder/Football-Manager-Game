@@ -245,6 +245,18 @@
         
         .timer-display { font-size: 3rem; color: var(--danger); font-weight: bold; text-align: center; margin: 20px 0;}
         
+        /* Calendar Styles */
+        .fixture-item {
+            padding: 8px; margin: 5px 0; border-radius: 3px; border-left: 4px solid var(--primary);
+            background: var(--input-bg); transition: all 0.2s;
+        }
+        .fixture-item:hover { background: var(--row-hover); transform: translateX(3px); }
+        .fixture-item.current { background: var(--primary); color: var(--text-light); border-left-color: var(--secondary); font-weight: bold; }
+        .fixture-date { font-weight: bold; color: var(--primary); }
+        .fixture-item.current .fixture-date { color: var(--text-light); }
+        .fixture-type { font-size: 11px; color: #7f8c8d; text-transform: uppercase; }
+        .fixture-item.current .fixture-type { color: var(--text-light); }
+        
         /* Match Box */
         .match-result-box {
             padding: 15px; margin-top: 15px; border-radius: 5px;
@@ -278,10 +290,19 @@
             <strong>Manager:</strong> <span id="display-manager"></span> | <strong>Club:</strong> <span id="display-club"></span><br>
             <strong>Budget:</strong> <span id="display-budget">€0</span> | <strong>Stadium Cap:</strong> <span id="display-stadium-cap">0</span>
         </div>
-        <div style="margin-left: auto;">
+        <div style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+            <button class="btn-small" onclick="saveGameCode()">Save Code</button>
             <button class="btn-small" onclick="openContacts()">Contacts ☎️</button>
         </div>
     </header>
+
+    <div id="save-code-panel" class="panel" style="display:none; margin: 15px 20px 0 20px; padding: 12px 15px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <strong>Save Code</strong>
+            <button class="btn-small" onclick="copyCurrentSaveCode()">Copy</button>
+        </div>
+        <textarea id="save-code-output" rows="3" readonly style="width:100%; box-sizing:border-box; margin-top:8px; resize:vertical;"></textarea>
+    </div>
 
     <div id="setup-screen" class="screen active">
         <h2>Create Your Club</h2>
@@ -392,6 +413,16 @@
         </div>
 
         <button onclick="startGame()" style="margin-top: 20px;">Start Career</button>
+
+        <div class="panel" style="margin-top: 20px; padding: 15px;">
+            <h3 style="margin-top: 0;">Resume Saved Career</h3>
+            <label for="save-code-input">Paste your save code here</label>
+            <textarea id="save-code-input" rows="5" style="width: 100%; box-sizing: border-box; margin-top: 8px; resize: vertical;" placeholder="Paste your save code..."></textarea>
+            <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+                <button onclick="loadGameFromCode()">Load Career</button>
+                <button onclick="loadLatestLocalSave()" style="background: var(--secondary);">Load Last Saved</button>
+            </div>
+        </div>
     </div>
 
     <div id="main-game" class="screen">
@@ -516,6 +547,7 @@
                     <h3>Next Fixture</h3>
                     <div style="background: var(--input-bg); padding: 15px; border-radius: 5px; border: 1px solid var(--panel-border); text-align: center;">
                         <p id="fixture-comp" style="color: #7f8c8d; font-weight: bold; text-transform: uppercase; margin-top: 0;">Loading Competition...</p>
+                        <p id="match-date-display" style="color: #3498db; font-weight: bold; font-size: 14px; margin: 8px 0;">📅 Loading Date...</p>
                         
                         <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin: 10px 0;">
                             <h2 style="margin:0;" id="fixture-matchup">Loading...</h2>
@@ -533,6 +565,11 @@
                     <div id="top-scorers-container">
                         <p>No goals scored yet.</p>
                     </div>
+
+                    <h3 style="margin-top: 30px;">Upcoming Fixtures (Next 5 Weeks)</h3>
+                    <div id="upcoming-fixtures-container" style="max-height: 300px; overflow-y: auto;">
+                        <p style="color: #7f8c8d;">Loading fixtures...</p>
+                    </div>
                 </div>
 
                 <div class="panel">
@@ -543,6 +580,11 @@
                             <thead><tr><th>Pos</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead>
                             <tbody id="league-table-body"></tbody>
                         </table>
+                    </div>
+
+                    <h3 style="margin-top: 20px;">Full Season Calendar</h3>
+                    <div id="full-calendar-container" style="max-height: 300px; overflow-y: auto; font-size: 12px;">
+                        <p style="color: #7f8c8d;">Loading calendar...</p>
                     </div>
                 </div>
             </div>
@@ -1509,6 +1551,17 @@
             }
         };
 
+        // Pad country name pools to exactly 100 entries for both first and last names.
+        Object.values(regionalNames).forEach(region => {
+            ["first", "last"].forEach(type => {
+                const source = region[type];
+                while (source.length < 100) {
+                    source.push(...source.slice(0, Math.min(source.length, 100 - source.length)));
+                }
+                source.length = 100;
+            });
+        });
+
         const clubGenerators = {
             "England": {
                 cities: ["Bristol", "Chester", "York", "Derby", "Lincoln", "Preston", "Newport", "Barrow", "Halifax", "Dover", "Wrexham", "Truro", "Yeovil", "Dulwich", "Chorley"],
@@ -1608,8 +1661,8 @@
 
         const cupNames = { "England": "FA Cup", "Spain": "Copa del Rey", "Italy": "Coppa Italia", "Germany": "DFB-Pokal", "France": "Coupe de France" };
         const cupRounds = ["Round 1", "Round 2", "Round of 16", "Quarter-Final", "Semi-Final", "Final"];
-        const cupSchedule = [4, 8, 12, 16, 20, 24]; 
-        const cup2Schedule = [2, 6, 10, 14, 18, 22]; 
+        let cupSchedule = [4, 8, 12, 16, 20, 24]; 
+        let cup2Schedule = [2, 6, 10, 14, 18, 22]; 
 
         const teamDatabase = {
             "England": {
@@ -1707,10 +1760,329 @@
             cup2RoundIndex: 0, cup2Status: 'Inactive',
             selectedPlayerIndex: null,
             playersToRetire: [],
-            setPieces: { captain: '', pen: '', fkC: '', fkL: '', fkR: '', fkLong: '', cornerL: '', cornerR: '' }
+            setPieces: { captain: '', pen: '', fkC: '', fkL: '', fkR: '', fkLong: '', cornerL: '', cornerR: '' },
+            seasonStartDate: null, fixtureCalendar: {}, nextFixtureDate: null, seasonBreaks: [],
+            promotionCount: 0, europeanQualification: null, europeanCompetition: null,
+            europeanStatus: 'Inactive', europeanRoundIndex: 0, europeanSchedule: [],
+            formationKey: '4-4-2-Balanced', playStyle: 'Balanced'
         };
 
+        // --- CALENDAR SYSTEM ---
+        function getSeasonStartDate(year) {
+            // Seasons typically start in August
+            return new Date(year, 7, 10); // August 10
+        }
+
+        function addDays(date, days) {
+            const nextDate = new Date(date);
+            nextDate.setDate(nextDate.getDate() + days);
+            return nextDate;
+        }
+
+        function findNextWeekend(date) {
+            const nextDate = new Date(date);
+            const day = nextDate.getDay();
+            const daysUntilSaturday = (6 - day + 7) % 7;
+            nextDate.setDate(nextDate.getDate() + (daysUntilSaturday === 0 ? 7 : daysUntilSaturday));
+            return nextDate;
+        }
+
+        function isDateInBreak(date, breakWindow) {
+            return date >= breakWindow.startDate && date <= breakWindow.endDate;
+        }
+
+        function getMajorTournamentName(year) {
+            if (year === 2026 || year === 2030) return 'World Cup';
+            if (year === 2024 || year === 2028 || year === 2032) return 'Euros';
+            if (year === 2025 || year === 2027 || year === 2029 || year === 2031) return 'AFCON';
+            if (year % 4 === 0) return 'Copa America';
+            return 'International Window';
+        }
+
+        function getSeasonBreaks(seasonYear, startDate) {
+            const breaks = [];
+            const sepBreak = {
+                name: 'International Break',
+                startDate: addDays(startDate, 35),
+                endDate: addDays(startDate, 42),
+                detail: 'National team duty'
+            };
+            const novBreak = {
+                name: 'International Break',
+                startDate: addDays(startDate, 91),
+                endDate: addDays(startDate, 98),
+                detail: 'National team duty'
+            };
+            const christmasBreak = {
+                name: 'Christmas Break',
+                startDate: new Date(seasonYear, 11, 18),
+                endDate: new Date(seasonYear + 1, 0, 6),
+                detail: 'Winter rest'
+            };
+            const springBreak = {
+                name: 'International Break',
+                startDate: addDays(startDate, 220),
+                endDate: addDays(startDate, 227),
+                detail: 'National team duty'
+            };
+
+            breaks.push(sepBreak, novBreak, christmasBreak, springBreak);
+
+            if (seasonYear === 2024 || seasonYear === 2026 || seasonYear === 2028 || seasonYear === 2030 || seasonYear === 2025 || seasonYear === 2027 || seasonYear === 2029 || seasonYear === 2031) {
+                breaks[1].name = getMajorTournamentName(seasonYear);
+                breaks[1].detail = `${breaks[1].name} window`;
+            }
+
+            return breaks;
+        }
+
+        function generateRealisticCalendar(seasonYear, totalMatchweeks, startDate = null) {
+            const calendar = {};
+            if (!startDate) {
+                startDate = getSeasonStartDate(seasonYear);
+            }
+
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const seasonBreaks = getSeasonBreaks(seasonYear, startDate);
+            gameState.seasonBreaks = seasonBreaks;
+
+            let currentDate = new Date(startDate);
+            for (let i = 0; i < totalMatchweeks; i++) {
+                currentDate = findNextWeekend(currentDate);
+                while (seasonBreaks.some(b => isDateInBreak(currentDate, b))) {
+                    currentDate = addDays(currentDate, 7);
+                    currentDate = findNextWeekend(currentDate);
+                }
+
+                const matchTime = i % 4 === 3 ? '19:45' : (i % 2 === 0 ? '15:00' : '14:00');
+                calendar[i] = {
+                    date: new Date(currentDate),
+                    dateStr: currentDate.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }),
+                    dayName: dayNames[currentDate.getDay()],
+                    time: matchTime,
+                    type: 'League'
+                };
+
+                currentDate = addDays(currentDate, 7);
+            }
+
+            return calendar;
+        }
+
+        function getRealisticCupSchedule(totalMatchweeks, country = 'England') {
+            // Realistic cup scheduling based on real football calendars
+            const schedule = [];
+            
+            // FA Cup / Main domestic cup: Rounds spread across season
+            const mainCupRounds = [];
+            mainCupRounds.push(Math.floor(totalMatchweeks * 0.15)); // Round 1: ~15% through season
+            mainCupRounds.push(Math.floor(totalMatchweeks * 0.25)); // Round 2: ~25% through
+            mainCupRounds.push(Math.floor(totalMatchweeks * 0.40)); // Round of 16: ~40% through
+            mainCupRounds.push(Math.floor(totalMatchweeks * 0.55)); // QF: ~55% through
+            mainCupRounds.push(Math.floor(totalMatchweeks * 0.70)); // SF: ~70% through
+            mainCupRounds.push(totalMatchweeks - 2); // Final: Near end of season
+            
+            // League Cup (English teams only): Mid-season competitions
+            const leagueCupRounds = [];
+            if (country === 'England') {
+                leagueCupRounds.push(Math.floor(totalMatchweeks * 0.08)); // Round 1
+                leagueCupRounds.push(Math.floor(totalMatchweeks * 0.18)); // Round 2
+                leagueCupRounds.push(Math.floor(totalMatchweeks * 0.30)); // Round 3
+                leagueCupRounds.push(Math.floor(totalMatchweeks * 0.45)); // QF
+                leagueCupRounds.push(Math.floor(totalMatchweeks * 0.60)); // SF
+                leagueCupRounds.push(totalMatchweeks - 5); // Final
+            }
+            
+            return { mainCup: mainCupRounds, leagueCup: leagueCupRounds };
+        }
+
+        function getNextMatchDate() {
+            if (gameState.fixtureCalendar && gameState.fixtureCalendar[gameState.matchweek]) {
+                const fixture = gameState.fixtureCalendar[gameState.matchweek];
+                return `${fixture.dateStr} at ${fixture.time}`;
+            }
+            return 'TBD';
+        }
+
+        function getMatchDifficultySettings() {
+            const tierDifficulty = Math.max(48, 65 - (gameState.tier * 3));
+            const promotionBonus = Math.max(0, gameState.promotionCount * 3);
+            const europeanBonus = gameState.europeanCompetition ? 2 : 0;
+            return {
+                oppOvr: Math.min(88, tierDifficulty + promotionBonus + europeanBonus)
+            };
+        }
+
+        function getEuropeanRoundLabel() {
+            if (!gameState.europeanCompetition) return 'European Match';
+            const roundNumber = gameState.europeanRoundIndex + 1;
+            if (gameState.europeanCompetition === 'Champions League') {
+                if (roundNumber === 1) return 'Group Stage';
+                if (roundNumber === 2) return 'Round of 16';
+                if (roundNumber === 3) return 'Quarter-Final';
+                return 'Semi-Final';
+            }
+            if (gameState.europeanCompetition === 'Europa League') {
+                if (roundNumber === 1) return 'Group Stage';
+                if (roundNumber === 2) return 'Round of 32';
+                return 'Round of 16';
+            }
+            if (roundNumber === 1) return 'Group Stage';
+            return 'Round of 16';
+        }
+
         function formatCurrency(num) { return '€' + num.toLocaleString(); }
+
+        function encodeSaveData(data) {
+            return btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+        }
+
+        function decodeSaveData(code) {
+            return JSON.parse(decodeURIComponent(escape(atob(code))));
+        }
+
+        function getSerializableGameState() {
+            const snapshot = JSON.parse(JSON.stringify(gameState));
+            snapshot.seasonStartDate = gameState.seasonStartDate ? gameState.seasonStartDate.toISOString() : null;
+            snapshot.fixtureCalendar = Object.fromEntries(Object.entries(gameState.fixtureCalendar || {}).map(([key, value]) => [key, { ...value, date: value.date ? value.date.toISOString() : null }]));
+            snapshot.seasonBreaks = (gameState.seasonBreaks || []).map(breakWindow => ({
+                ...breakWindow,
+                startDate: breakWindow.startDate ? breakWindow.startDate.toISOString() : null,
+                endDate: breakWindow.endDate ? breakWindow.endDate.toISOString() : null
+            }));
+            snapshot.formationKey = document.getElementById('formation-select').value || gameState.formationKey || '4-4-2-Balanced';
+            snapshot.playStyle = document.getElementById('playstyle-select').value || gameState.playStyle || 'Balanced';
+            return snapshot;
+        }
+
+        function updateSaveCodePanel(saveCode = null) {
+            const panel = document.getElementById('save-code-panel');
+            const output = document.getElementById('save-code-output');
+            if (!panel || !output) return;
+            if (saveCode) {
+                output.value = saveCode;
+                panel.style.display = 'block';
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function copyCurrentSaveCode() {
+            const output = document.getElementById('save-code-output');
+            if (!output || !output.value) {
+                alert('No save code to copy yet. Generate one first.');
+                return;
+            }
+            navigator.clipboard.writeText(output.value).then(() => {
+                alert('Save code copied to clipboard!');
+            }).catch(() => {
+                output.select();
+                document.execCommand('copy');
+                alert('Save code copied to clipboard!');
+            });
+        }
+
+        function saveGameCode() {
+            const saveCode = `CLUBMANAGER:${encodeSaveData(getSerializableGameState())}`;
+            localStorage.setItem('clubManagerSaveCode', saveCode);
+            document.getElementById('save-code-input').value = saveCode;
+            updateSaveCodePanel(saveCode);
+            alert('Save code generated and shown below.');
+            return saveCode;
+        }
+
+        function loadLatestLocalSave() {
+            const stored = localStorage.getItem('clubManagerSaveCode');
+            if (!stored) {
+                alert('No saved game found in this browser.');
+                return;
+            }
+            document.getElementById('save-code-input').value = stored;
+            updateSaveCodePanel(stored);
+            loadGameFromCode(stored);
+        }
+
+        function restoreLoadedState(snapshot) {
+            Object.keys(gameState).forEach(key => {
+                if (key in snapshot) {
+                    if (key === 'badge') {
+                        Object.assign(gameState.badge, snapshot.badge || {});
+                    } else if (key === 'setPieces') {
+                        Object.assign(gameState.setPieces, snapshot.setPieces || {});
+                    } else if (key === 'seasonStartDate') {
+                        gameState.seasonStartDate = snapshot.seasonStartDate ? new Date(snapshot.seasonStartDate) : null;
+                    } else if (key === 'fixtureCalendar') {
+                        const restoredCalendar = {};
+                        Object.entries(snapshot.fixtureCalendar || {}).forEach(([k, value]) => {
+                            restoredCalendar[k] = { ...value, date: value.date ? new Date(value.date) : null };
+                        });
+                        gameState.fixtureCalendar = restoredCalendar;
+                    } else if (key === 'seasonBreaks') {
+                        gameState.seasonBreaks = (snapshot.seasonBreaks || []).map(breakWindow => ({
+                            ...breakWindow,
+                            startDate: breakWindow.startDate ? new Date(breakWindow.startDate) : null,
+                            endDate: breakWindow.endDate ? new Date(breakWindow.endDate) : null
+                        }));
+                    } else {
+                        gameState[key] = snapshot[key];
+                    }
+                }
+            });
+
+            gameState.formationKey = snapshot.formationKey || gameState.formationKey || '4-4-2-Balanced';
+            gameState.playStyle = snapshot.playStyle || gameState.playStyle || 'Balanced';
+            currentTeamKitDataURL = gameState.kitURL || null;
+            currentGKKitDataURL = gameState.gkKitURL || null;
+        }
+
+        function loadGameFromCode(code = null) {
+            const rawCode = code || document.getElementById('save-code-input').value;
+            if (!rawCode) {
+                alert('Please paste a save code first.');
+                return;
+            }
+
+            try {
+                const cleaned = rawCode.trim();
+                const payload = cleaned.startsWith('CLUBMANAGER:') ? cleaned.slice('CLUBMANAGER:'.length) : cleaned;
+                const snapshot = decodeSaveData(payload);
+                restoreLoadedState(snapshot);
+
+                document.getElementById('manager-name').value = gameState.manager || '';
+                document.getElementById('club-name').value = gameState.club || '';
+                document.getElementById('country-select').value = gameState.country || 'England';
+                document.getElementById('stadium-name').value = gameState.stadium || '';
+                document.getElementById('stadium-type').value = gameState.stadiumType || 'Small Local Ground';
+                document.getElementById('badge-shape').value = gameState.badge?.shape || 'Shield';
+                document.getElementById('badge-text').value = gameState.badge?.text || 'AFC';
+                document.getElementById('badge-color').value = gameState.badge?.color || '#f1c40f';
+                document.getElementById('badge-text-color').value = gameState.badge?.textColor || '#000000';
+                document.getElementById('badge-size').value = gameState.badge?.size || 25;
+                document.getElementById('badge-x').value = gameState.badge?.x || 70;
+                document.getElementById('badge-y').value = gameState.badge?.y || 35;
+                document.getElementById('formation-select').value = gameState.formationKey || '4-4-2-Balanced';
+                document.getElementById('playstyle-select').value = gameState.playStyle || 'Balanced';
+                updateKitPreview('setup');
+                updateSaveCodePanel(rawCode);
+
+                initSeason();
+                changeFormation();
+                applyGlobalBadge();
+                updateStadiumDisplay();
+                renderSquadTable();
+                renderSetPieces();
+                renderPitch();
+                renderSellTable();
+                renderAcademy();
+                updateScoutUI();
+                updateHeaderFinancials();
+                switchScreen('main-game');
+                alert('Career loaded successfully!');
+            } catch (error) {
+                console.error(error);
+                alert('That save code could not be loaded.');
+            }
+        }
 
         function getRandomCountry() {
             const continents = Object.keys(continentData);
@@ -1762,6 +2134,8 @@
             gameState.gkKitURL = currentGKKitDataURL;
             currentTeamKitDataURL = gameState.kitURL;
             currentGKKitDataURL = gameState.gkKitURL;
+            gameState.formationKey = document.getElementById('formation-select').value;
+            gameState.playStyle = document.getElementById('playstyle-select').value;
             gameState.badge.shape = document.getElementById('badge-shape').value;
             gameState.badge.text = document.getElementById('badge-text').value.substring(0, 3).toUpperCase();
             gameState.badge.color = document.getElementById('badge-color').value;
@@ -1817,11 +2191,32 @@
             
             applyGlobalBadge();
             updateStadiumDisplay();
+            updateSaveCodePanel();
 
             generateSquad();
+            applySeasonBreakCallUps();
             searchScouts();
             updateCountryDropdown();
             switchScreen('main-game');
+        }
+
+        function applySeasonBreakCallUps() {
+            if (!gameState.squad || gameState.squad.length === 0 || !gameState.seasonBreaks) return;
+
+            gameState.seasonBreaks.forEach((breakWindow) => {
+                breakWindow.callUp = null;
+                if (breakWindow.name === 'Christmas Break' || breakWindow.name === 'Winter Break') return;
+
+                const eligiblePlayers = gameState.squad.filter(p => p.status === 'Active' && p.ovr >= 75 && (p.age || 25) < 31);
+                if (eligiblePlayers.length === 0) return;
+
+                const tierChance = gameState.tier === 1 ? 0.35 : gameState.tier === 2 ? 0.2 : gameState.tier === 3 ? 0.08 : 0.02;
+                const starChance = Math.min(0.8, tierChance + ((eligiblePlayers[0].ovr - 75) / 120));
+                if (Math.random() < starChance) {
+                    const chosen = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
+                    breakWindow.callUp = `${chosen.name} (${chosen.ovr} OVR)`;
+                }
+            });
         }
 
         function initSeason() {
@@ -1830,11 +2225,37 @@
             gameState.cupStatus = 'Active';
             gameState.cup2RoundIndex = 0;
             gameState.cup2Status = (gameState.country === "England") ? 'Active' : 'Inactive';
+            gameState.europeanRoundIndex = 0;
+            gameState.europeanStatus = 'Inactive';
+            gameState.europeanSchedule = [];
+            
+            if (gameState.europeanCompetition && gameState.tier === 1) {
+                const total = gameState.totalMatchweeks;
+                gameState.europeanStatus = 'Active';
+                gameState.europeanSchedule = [
+                    Math.max(4, Math.floor(total * 0.20)),
+                    Math.max(8, Math.floor(total * 0.50)),
+                    total - 2
+                ];
+            } else {
+                gameState.europeanCompetition = null;
+            }
             
             gameState.sponsorIndex = 4 - gameState.tier; 
             const currentLeague = leagueStructure[gameState.country].find(l => l.tier === gameState.tier);
             
-            gameState.totalMatchweeks = currentLeague.matches; 
+            gameState.totalMatchweeks = currentLeague.matches;
+            
+            // Initialize calendar system
+            gameState.seasonStartDate = getSeasonStartDate(gameState.seasonYear);
+            gameState.fixtureCalendar = generateRealisticCalendar(gameState.seasonYear, gameState.totalMatchweeks, gameState.seasonStartDate);
+            
+            // Update cup schedules to realistic dates
+            const cupScheduleMap = getRealisticCupSchedule(gameState.totalMatchweeks, gameState.country);
+            cupSchedule = cupScheduleMap.mainCup;
+            cup2Schedule = cupScheduleMap.leagueCup;
+
+            applySeasonBreakCallUps();
 
             document.getElementById('season-year').innerText = `${gameState.seasonYear}/${(gameState.seasonYear+1).toString().slice(2)}`;
             document.getElementById('total-matchweeks').innerText = gameState.totalMatchweeks;
@@ -1884,6 +2305,22 @@
             document.getElementById('display-stadium-cap').innerText = gameState.stadiumCap.toLocaleString();
         }
 
+        function computeSetSkills(pos, ovr) {
+            let base = Math.max(10, Math.floor(ovr / 1.5));
+            const attMid = ['ST','CF','CAM','CM','LM','RM','LW','RW','LAM','RAM'];
+            const mids = ['CM','CDM','CAM','LM','RM','LAM','RAM'];
+            const wingers = ['LM','RM','LW','RW'];
+
+            let pen = base + (attMid.includes(pos) ? Math.floor(Math.random() * 18) + 8 : Math.floor(Math.random() * 6));
+            let fk = base + (mids.includes(pos) || attMid.includes(pos) ? Math.floor(Math.random() * 18) + 6 : Math.floor(Math.random() * 5));
+            let corner = base + (wingers.includes(pos) || mids.includes(pos) ? Math.floor(Math.random() * 14) + 4 : Math.floor(Math.random() * 4));
+
+            pen = Math.min(99, pen);
+            fk = Math.min(99, fk);
+            corner = Math.min(99, corner);
+            return { penSkill: pen, fkSkill: fk, cornerSkill: corner };
+        }
+
         function generateSquad() {
             gameState.squad = [];
             const formKey = document.getElementById('formation-select').value;
@@ -1896,15 +2333,21 @@
                 if (nameCountry === gameState.country && Math.random() < 0.2) {
                     nameCountry = getRandomCountry();
                 }
+                const ovrVal = Math.floor(Math.random() * (70 - 55 + 1)) + 55 + ovrBoost;
+                const ageVal = Math.floor(Math.random() * (32 - 22 + 1)) + 22;
+                const skills = computeSetSkills(newPositions[i], ovrVal);
                 gameState.squad.push({
                     name: randomName(nameCountry), pos: newPositions[i], natPos: newPositions[i], 
-                    ovr: Math.floor(Math.random() * (70 - 55 + 1)) + 55 + ovrBoost,
+                    ovr: ovrVal,
                     isStarting: true, goals: 0, contract: Math.floor(Math.random() * 3) + 1,
                     atkBias: Math.floor(Math.random() * 11) - 5,
-                    status: 'Active', statusDuration: 0, age: Math.floor(Math.random() * (32 - 22 + 1)) + 22,
+                    status: 'Active', statusDuration: 0, age: ageVal,
                     morale: Math.floor(Math.random() * 76) + 25, // 25-100
                     wantsToLeave: false,
-                    refusesRenew: false
+                    refusesRenew: false,
+                    penSkill: skills.penSkill,
+                    fkSkill: skills.fkSkill,
+                    cornerSkill: skills.cornerSkill
                 });
             }
             for(let i=0; i<7; i++) {
@@ -1913,15 +2356,21 @@
                 if (nameCountry === gameState.country && Math.random() < 0.2) {
                     nameCountry = getRandomCountry();
                 }
+                const ovrVal = Math.floor(Math.random() * (68 - 50 + 1)) + 50 + ovrBoost;
+                const ageVal = Math.floor(Math.random() * (30 - 20 + 1)) + 20;
+                const skills = computeSetSkills(naturalPosition, ovrVal);
                 gameState.squad.push({
                     name: randomName(nameCountry), pos: 'SUB', natPos: naturalPosition, 
-                    ovr: Math.floor(Math.random() * (68 - 50 + 1)) + 50 + ovrBoost,
+                    ovr: ovrVal,
                     isStarting: false, goals: 0, contract: Math.floor(Math.random() * 3) + 1,
                     atkBias: Math.floor(Math.random() * 11) - 5,
-                    status: 'Active', statusDuration: 0, age: Math.floor(Math.random() * (30 - 20 + 1)) + 20,
+                    status: 'Active', statusDuration: 0, age: ageVal,
                     morale: Math.floor(Math.random() * 76) + 25,
                     wantsToLeave: false,
-                    refusesRenew: false
+                    refusesRenew: false,
+                    penSkill: skills.penSkill,
+                    fkSkill: skills.fkSkill,
+                    cornerSkill: skills.cornerSkill
                 });
             }
             renderSquadTable();
@@ -2271,13 +2720,16 @@
         function forceSell(index) {
             const p = gameState.squad[index];
             if (!p) return alert('Player not found');
-            // mark for sale and remove from squad
-            const confirmed = confirm(`Offer ${p.name} to other clubs? This will remove them from your squad.`);
+            // mark for sale but keep them in the squad (don't remove immediately)
+            const confirmed = confirm(`Offer ${p.name} to other clubs? This will list them for transfer but keep them in your squad until sold.`);
             if (!confirmed) return;
-            gameState.squad.splice(index, 1);
-            gameState.loanedOut.push(p);
-            alert(`${p.name} has been made available to other clubs.`);
+            p.forSale = true;
+            // add to a transfer list if needed for other systems
+            if (!gameState.transferListed) gameState.transferListed = [];
+            if (!gameState.transferListed.includes(p)) gameState.transferListed.push(p);
+            alert(`${p.name} has been listed for transfer and is now available to other clubs.`);
             renderSquadTable();
+            renderSellTable();
             updateContacts();
             updateHeaderFinancials();
         }
@@ -2622,7 +3074,7 @@
 
         function renderSetPieces() {
             const starters = gameState.squad.filter(p => p.isStarting && p.status === 'Active');
-            
+
             const spKeys = [
                 { id: 'captain', key: 'captain' },
                 { id: 'pen', key: 'pen' },
@@ -2634,22 +3086,62 @@
                 { id: 'corner-r', key: 'cornerR' }
             ];
 
+            // position groups considered "mid/att"
+            const midAtt = ['CM','CDM','CAM','LM','RM','LW','RW','ST','CF','LAM','RAM'];
+            const wingers = ['LM','RM','LW','RW'];
+
+            function buildCandidates(roleKey) {
+                let primary = [];
+                if (roleKey === 'pen') {
+                    primary = starters.filter(p => midAtt.includes(p.pos)).slice();
+                    primary.sort((a,b) => (b.penSkill || 0) - (a.penSkill || 0) || b.ovr - a.ovr);
+                } else if (roleKey.startsWith('fk')) {
+                    primary = starters.filter(p => midAtt.includes(p.pos)).slice();
+                    primary.sort((a,b) => (b.fkSkill || 0) - (a.fkSkill || 0) || b.ovr - a.ovr);
+                } else if (roleKey.startsWith('corner')) {
+                    primary = starters.filter(p => wingers.includes(p.pos) || midAtt.includes(p.pos)).slice();
+                    primary.sort((a,b) => (b.cornerSkill || 0) - (a.cornerSkill || 0) || b.ovr - a.ovr);
+                } else if (roleKey === 'captain') {
+                    primary = starters.slice();
+                    primary.sort((a,b) => (b.morale || 0) - (a.morale || 0) || b.ovr - a.ovr);
+                } else {
+                    primary = starters.slice();
+                    primary.sort((a,b) => b.ovr - a.ovr);
+                }
+
+                // If not enough preferred players, allow defenders occasionally
+                if (primary.length < Math.max(3, starters.length)) {
+                    const fallback = starters.filter(p => !primary.includes(p));
+                    // rarely allow defenders/gk into list: low probability inclusion
+                    fallback.sort((a,b) => b.ovr - a.ovr);
+                    fallback.forEach(p => {
+                        if (!primary.includes(p) && (midAtt.includes(p.pos) || Math.random() < 0.15)) {
+                            primary.push(p);
+                        }
+                    });
+                }
+
+                // finally ensure uniqueness
+                return primary;
+            }
+
             spKeys.forEach(sp => {
                 const select = document.getElementById(`sp-${sp.id}`);
                 const currentVal = gameState.setPieces[sp.key];
                 select.innerHTML = '';
-                
-                starters.forEach(p => {
+
+                const candidates = buildCandidates(sp.key);
+                candidates.forEach(p => {
                     const opt = document.createElement('option');
                     opt.value = p.name;
-                    opt.innerText = p.name;
+                    opt.innerText = `${p.name} (${p.pos})`;
                     select.appendChild(opt);
                 });
-                
-                if (currentVal && starters.find(p => p.name === currentVal)) {
+
+                if (currentVal && candidates.find(p => p.name === currentVal)) {
                     select.value = currentVal;
                 } else {
-                    select.value = starters[0] ? starters[0].name : '';
+                    select.value = candidates[0] ? candidates[0].name : '';
                     gameState.setPieces[sp.key] = select.value;
                 }
             });
@@ -2672,6 +3164,7 @@
             outfielders.sort((a,b) => b.ovr - a.ovr);
             return outfielders.length > 0 ? outfielders[0].name : "Unknown";
         }
+
 
         function renderPitch() {
             const formKey = document.getElementById('formation-select').value;
@@ -2808,7 +3301,15 @@
             
             gameState.isHomeGame = Math.random() > 0.5;
 
-            if (gameState.cupStatus === 'Active' && cupSchedule.includes(gameState.matchweek) && gameState.cupRoundIndex === cupSchedule.indexOf(gameState.matchweek)) {
+            if (gameState.europeanCompetition && gameState.europeanStatus === 'Active' && gameState.europeanSchedule[gameState.europeanRoundIndex] === gameState.matchweek) {
+                gameState.nextFixtureType = 'Europe';
+                let tierRandom = Math.max(1, Math.min(2, gameState.tier));
+                let groupRandom = Math.floor(Math.random() * gameState.worldLeagues[tierRandom].length);
+                let t = gameState.worldLeagues[tierRandom][groupRandom];
+                gameState.currentOpponent = t[Math.floor(Math.random()*t.length)];
+                if(gameState.currentOpponent === gameState.club) gameState.currentOpponent = t[0] !== gameState.club ? t[0] : t[1]; 
+            }
+            else if (gameState.cupStatus === 'Active' && cupSchedule.includes(gameState.matchweek) && gameState.cupRoundIndex === cupSchedule.indexOf(gameState.matchweek)) {
                 gameState.nextFixtureType = 'Cup';
                 let tierRandom = Math.floor(Math.random() * 4) + 1;
                 let groupRandom = Math.floor(Math.random() * gameState.worldLeagues[tierRandom].length);
@@ -2867,12 +3368,20 @@
             }
             document.getElementById('match-venue-display').innerText = venueText;
             
+            // Display match date and time
+            const matchDateDisplay = document.getElementById('match-date-display');
+            if (matchDateDisplay) {
+                matchDateDisplay.innerText = getNextMatchDate();
+            }
+            
             applyGlobalBadge();
 
             if (gameState.nextFixtureType === 'Cup') {
                 compDisplay.innerHTML = `🏆 ${cupNames[gameState.country]} - ${cupRounds[gameState.cupRoundIndex]}`;
             } else if (gameState.nextFixtureType === 'Cup2') {
                 compDisplay.innerHTML = `🏆 Carabao Cup - ${cupRounds[gameState.cup2RoundIndex]}`;
+            } else if (gameState.nextFixtureType === 'Europe') {
+                compDisplay.innerHTML = `🏆 ${gameState.europeanCompetition} - ${getEuropeanRoundLabel()}`;
             } else {
                 const currentLeague = leagueStructure[gameState.country].find(l => l.tier === gameState.tier);
                 let lNameText = currentLeague.name;
@@ -2881,6 +3390,116 @@
                 }
                 compDisplay.innerHTML = `⚽ ${lNameText} - Matchweek ${gameState.matchweek + 1}`;
             }
+            
+            renderUpcomingFixtures();
+            renderFullCalendar();
+        }
+
+        function renderUpcomingFixtures() {
+            const container = document.getElementById('upcoming-fixtures-container');
+            if (!container) return;
+            
+            let html = '<div style="font-size: 13px;">';
+            const maxWeeks = Math.min(5, gameState.totalMatchweeks - gameState.matchweek);
+            
+            for (let i = 0; i < maxWeeks; i++) {
+                const mw = gameState.matchweek + i;
+                if (mw >= gameState.totalMatchweeks) break;
+                
+                const fixture = gameState.fixtureCalendar[mw];
+                if (!fixture) continue;
+                
+                let opponent = '';
+                let type = 'League';
+                
+                if (gameState.europeanCompetition && gameState.europeanStatus === 'Active' && gameState.europeanSchedule[gameState.europeanRoundIndex] === mw) {
+                    type = gameState.europeanCompetition;
+                    opponent = '[European Opponent]';
+                } else if (cupSchedule && cupSchedule.includes(mw)) {
+                    type = `${cupNames[gameState.country]}`;
+                    opponent = '[Cup Opponent]';
+                } else if (cup2Schedule && cup2Schedule.includes(mw)) {
+                    type = 'League Cup';
+                    opponent = '[Cup Opponent]';
+                } else {
+                    const leagueFixture = gameState.leagueFixtures[mw];
+                    if (leagueFixture) {
+                        if (leagueFixture.home === gameState.club) {
+                            opponent = `${leagueFixture.away} (H)`;
+                        } else if (leagueFixture.away === gameState.club) {
+                            opponent = `${leagueFixture.home} (A)`;
+                        } else {
+                            opponent = '[TBD]';
+                        }
+                    }
+                }
+                
+                const highlight = mw === gameState.matchweek ? 'style="background: var(--primary); color: var(--text-light); padding: 5px; border-radius: 3px; font-weight: bold;"' : 'style="padding: 5px; border-bottom: 1px solid var(--panel-border);"';
+                html += `<div ${highlight}>
+                    <strong>${fixture.dateStr}</strong> ${fixture.time}<br>
+                    <small style="color: ${mw === gameState.matchweek ? 'var(--text-light)' : '#7f8c8d'};">${type}</small> - ${opponent}
+                </div>`;
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderFullCalendar() {
+            const container = document.getElementById('full-calendar-container');
+            if (!container) return;
+            
+            let html = '<div style="font-size: 11px; line-height: 1.5;">';
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            let currentMonth = -1;
+            
+            for (let mw = 0; mw < gameState.totalMatchweeks; mw++) {
+                const fixture = gameState.fixtureCalendar[mw];
+                if (!fixture) continue;
+                
+                const date = fixture.date;
+                const month = date.getMonth();
+                
+                // Add month header when month changes
+                if (month !== currentMonth) {
+                    if (currentMonth !== -1) html += '<br>';
+                    html += `<strong style="color: var(--primary);">${monthNames[month]}</strong><br>`;
+                    const monthBreaks = (gameState.seasonBreaks || []).filter(b => b.startDate.getMonth() === month || b.endDate.getMonth() === month);
+                    if (monthBreaks.length > 0) {
+                        html += `<span style="color:#f39c12;">🎌 ${monthBreaks.map(b => b.name).join(', ')}</span><br>`;
+                    }
+                    currentMonth = month;
+                }
+                
+                let typeIcon = '⚽';
+                let bgColor = 'transparent';
+                let weekLabel = `League MW${mw+1}`;
+                
+                if (gameState.europeanCompetition && gameState.europeanStatus === 'Active' && gameState.europeanSchedule[gameState.europeanRoundIndex] === mw) {
+                    typeIcon = '🌍';
+                    weekLabel = `${gameState.europeanCompetition}`;
+                } else if (cupSchedule && cupSchedule.includes(mw)) {
+                    typeIcon = '🏆';
+                    weekLabel = `${cupNames[gameState.country]}`;
+                } else if (cup2Schedule && cup2Schedule.includes(mw)) {
+                    typeIcon = '🎖️';
+                    weekLabel = 'League Cup';
+                }
+                
+                if (mw === gameState.matchweek) {
+                    bgColor = 'var(--primary)';
+                    html += `<span style="background: ${bgColor}; color: var(--text-light); padding: 2px 4px; border-radius: 2px; font-weight: bold;">${weekLabel}</span> `;
+                } else if (mw < gameState.matchweek) {
+                    html += `<span style="color: #95a5a6;">${weekLabel}</span> `;
+                } else {
+                    html += `<span>${typeIcon} ${weekLabel}</span> `;
+                }
+                
+                if ((mw + 1) % 4 === 0) html += '<br>';
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
         }
 
         // --- LIVE MATCH ENGINE (2D TEXT SIM) ---
@@ -2917,7 +3536,8 @@
             const log = document.getElementById('lm-events');
             
             let userOvr = gameState.squad.reduce((sum, p) => sum + (p.isStarting && p.status === 'Active' ? p.ovr : 0), 0) / 11;
-            let oppOvr = 65 - (gameState.tier * 3); 
+            const difficulty = getMatchDifficultySettings();
+            let oppOvr = difficulty.oppOvr;
             
             if(gameState.isHomeGame) userOvr += 2;
             else oppOvr += 2;
@@ -3130,6 +3750,30 @@
                 });
                 sortAndRenderLeagueTable();
                 
+            } else if (gameState.nextFixtureType === 'Europe') {
+                document.getElementById('matchweek-num').innerText = gameState.matchweek;
+                if (userGoals > oppGoals) {
+                    gameState.europeanRoundIndex++;
+                    lastResultText += `<br><em>You advanced in the ${gameState.europeanCompetition}.</em>`;
+                } else if (userGoals < oppGoals) {
+                    gameState.europeanStatus = 'Eliminated';
+                    lastResultText += `<br><em>Eliminated from the ${gameState.europeanCompetition}.</em>`;
+                } else {
+                    let pOut = simulatePenalties(gameState.isHomeGame);
+                    lastResultText += pOut.pLog;
+                    if(pOut.uPens > pOut.oPens) {
+                        gameState.europeanRoundIndex++;
+                        lastResultText += `<br><strong style="color:var(--primary);">You won on penalties and advanced!</strong>`;
+                    } else {
+                        gameState.europeanStatus = 'Eliminated';
+                        lastResultText += `<br><strong style="color:var(--danger);">Knocked out on penalties.</strong>`;
+                    }
+                }
+
+                if (gameState.europeanRoundIndex >= gameState.europeanSchedule.length) {
+                    gameState.europeanStatus = 'Complete';
+                    gameState.europeanCompetition = null;
+                }
             } else if (gameState.nextFixtureType === 'Cup') {
                 if (userGoals > oppGoals) {
                     gameState.cupRoundIndex++;
@@ -3628,6 +4272,7 @@
             let userReview = "";
             let nextUserTier = gameState.tier;
             let nextUserGroup = gameState.groupIndex;
+            let europeanQualification = null;
 
             for(let t=1; t<=4; t++) {
                 let rules = leagueStructure[gameState.country].find(l => l.tier === t);
@@ -3698,6 +4343,19 @@
                         } else {
                             userReview += `Solid mid-table stability. You will remain in this division.<br>`;
                         }
+
+                        if (t === 1 && gameState.tier === 1) {
+                            if (userRank <= 4) {
+                                europeanQualification = 'Champions League';
+                                userReview += `<strong style="color:var(--primary)">You qualified for the Champions League.</strong><br>`;
+                            } else if (userRank === 5) {
+                                europeanQualification = 'Europa League';
+                                userReview += `<strong style="color:var(--primary)">You qualified for the Europa League.</strong><br>`;
+                            } else if (userRank === 6) {
+                                europeanQualification = 'Europa Conference League';
+                                userReview += `<strong style="color:var(--primary)">You qualified for the Europa Conference League.</strong><br>`;
+                            }
+                        }
                     }
                 }
             }
@@ -3739,6 +4397,10 @@
                 }
             }
 
+            if (nextUserTier < gameState.tier) {
+                gameState.promotionCount++;
+            }
+            gameState.europeanQualification = europeanQualification;
             return userReview;
         }
 
@@ -3889,6 +4551,16 @@
             gameState.gkKitURL = currentGKKitDataURL;
             currentTeamKitDataURL = gameState.kitURL;
             currentGKKitDataURL = gameState.gkKitURL;
+
+            if (gameState.europeanQualification) {
+                gameState.europeanCompetition = gameState.europeanQualification;
+                gameState.europeanStatus = 'Active';
+                gameState.europeanRoundIndex = 0;
+            } else {
+                gameState.europeanCompetition = null;
+                gameState.europeanStatus = 'Inactive';
+                gameState.europeanRoundIndex = 0;
+            }
             
             gameState.badge.shape = document.getElementById('new-badge-shape').value;
             gameState.badge.text = document.getElementById('new-badge-text').value.substring(0, 3).toUpperCase();
