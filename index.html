@@ -2255,6 +2255,41 @@
             cupSchedule = cupScheduleMap.mainCup;
             cup2Schedule = cupScheduleMap.leagueCup;
 
+            // Build explicit cup fixtures with their own dates (midweek) so they do NOT consume league matchweeks
+            gameState.cupFixtures = [];
+            gameState.cup2Fixtures = [];
+            gameState.europeFixtures = [];
+
+            function getMidweekBefore(dateObj) {
+                const d = new Date(dateObj);
+                // aim for Wednesday (3)
+                const day = d.getDay();
+                let diff = day >= 3 ? day - 3 : 7 - (3 - day);
+                if (diff === 0) diff = 7; // move to previous week Wednesday
+                d.setDate(d.getDate() - diff);
+                return d;
+            }
+
+            if (Array.isArray(cupSchedule)) {
+                cupSchedule.forEach((mwIdx, i) => {
+                    const ref = gameState.fixtureCalendar[mwIdx];
+                    if (ref && ref.date) {
+                        const d = getMidweekBefore(ref.date);
+                        gameState.cupFixtures.push({ roundIndex: i, date: d, roundName: cupRounds[i] || `Round ${i+1}`, active: true });
+                    }
+                });
+            }
+            if (Array.isArray(cup2Schedule)) {
+                cup2Schedule.forEach((mwIdx, i) => {
+                    const ref = gameState.fixtureCalendar[mwIdx];
+                    if (ref && ref.date) {
+                        const d = getMidweekBefore(ref.date);
+                        gameState.cup2Fixtures.push({ roundIndex: i, date: d, roundName: cupRounds[i] || `Round ${i+1}`, active: (gameState.country === 'England') });
+                    }
+                });
+            }
+            // europe fixtures schedule will be created if the user qualifies at season end
+
             applySeasonBreakCallUps();
 
             document.getElementById('season-year').innerText = `${gameState.seasonYear}/${(gameState.seasonYear+1).toString().slice(2)}`;
@@ -3300,32 +3335,53 @@
             updateTransferWindowUI();
             
             gameState.isHomeGame = Math.random() > 0.5;
+            // Decide next event by comparing the next league date and any upcoming cup/europe dates
+            const nextLeagueFixture = gameState.fixtureCalendar[gameState.matchweek];
+            const nextLeagueDate = nextLeagueFixture ? nextLeagueFixture.date : null;
 
-            if (gameState.europeanCompetition && gameState.europeanStatus === 'Active' && gameState.europeanSchedule[gameState.europeanRoundIndex] === gameState.matchweek) {
+            // helper to get earliest active cup/cup2/europe fixture
+            function nextUpcomingFixtureFrom(list, roundIndex) {
+                if (!Array.isArray(list)) return null;
+                for (let i = roundIndex; i < list.length; i++) {
+                    if (list[i] && list[i].active) return list[i];
+                }
+                return null;
+            }
+
+            const nextCup = (gameState.cupStatus === 'Active') ? nextUpcomingFixtureFrom(gameState.cupFixtures, gameState.cupRoundIndex) : null;
+            const nextCup2 = (gameState.cup2Status === 'Active') ? nextUpcomingFixtureFrom(gameState.cup2Fixtures, gameState.cup2RoundIndex) : null;
+            const nextEurope = (gameState.europeanStatus === 'Active') ? nextUpcomingFixtureFrom(gameState.europeFixtures, gameState.europeanRoundIndex) : null;
+
+            // choose earliest by date (if any), otherwise league
+            let candidate = { type: 'League', date: nextLeagueDate };
+            [nextCup, nextCup2, nextEurope].forEach(evt => {
+                if (evt && evt.date) {
+                    if (!candidate.date || evt.date < candidate.date) candidate = { type: (evt === nextEurope ? 'Europe' : (evt === nextCup2 ? 'Cup2' : 'Cup')), date: evt.date, evt };
+                }
+            });
+
+            if (candidate.type === 'Europe') {
                 gameState.nextFixtureType = 'Europe';
-                let tierRandom = Math.max(1, Math.min(2, gameState.tier));
-                let groupRandom = Math.floor(Math.random() * gameState.worldLeagues[tierRandom].length);
-                let t = gameState.worldLeagues[tierRandom][groupRandom];
+                const tierRandom = Math.max(1, Math.min(2, gameState.tier));
+                const groupRandom = Math.floor(Math.random() * gameState.worldLeagues[tierRandom].length);
+                const t = gameState.worldLeagues[tierRandom][groupRandom];
                 gameState.currentOpponent = t[Math.floor(Math.random()*t.length)];
-                if(gameState.currentOpponent === gameState.club) gameState.currentOpponent = t[0] !== gameState.club ? t[0] : t[1]; 
-            }
-            else if (gameState.cupStatus === 'Active' && cupSchedule.includes(gameState.matchweek) && gameState.cupRoundIndex === cupSchedule.indexOf(gameState.matchweek)) {
+                if(gameState.currentOpponent === gameState.club) gameState.currentOpponent = t[0] !== gameState.club ? t[0] : t[1];
+            } else if (candidate.type === 'Cup') {
                 gameState.nextFixtureType = 'Cup';
-                let tierRandom = Math.floor(Math.random() * 4) + 1;
-                let groupRandom = Math.floor(Math.random() * gameState.worldLeagues[tierRandom].length);
-                let t = gameState.worldLeagues[tierRandom][groupRandom];
+                const tierRandom = Math.floor(Math.random() * 4) + 1;
+                const groupRandom = Math.floor(Math.random() * gameState.worldLeagues[tierRandom].length);
+                const t = gameState.worldLeagues[tierRandom][groupRandom];
                 gameState.currentOpponent = t[Math.floor(Math.random()*t.length)];
-                if(gameState.currentOpponent === gameState.club) gameState.currentOpponent = t[0] !== gameState.club ? t[0] : t[1]; 
-            } 
-            else if (gameState.cup2Status === 'Active' && cup2Schedule.includes(gameState.matchweek) && gameState.cup2RoundIndex === cup2Schedule.indexOf(gameState.matchweek)) {
+                if(gameState.currentOpponent === gameState.club) gameState.currentOpponent = t[0] !== gameState.club ? t[0] : t[1];
+            } else if (candidate.type === 'Cup2') {
                 gameState.nextFixtureType = 'Cup2';
-                let tierRandom = Math.floor(Math.random() * 4) + 1;
-                let groupRandom = Math.floor(Math.random() * gameState.worldLeagues[tierRandom].length);
-                let t = gameState.worldLeagues[tierRandom][groupRandom];
+                const tierRandom = Math.floor(Math.random() * 4) + 1;
+                const groupRandom = Math.floor(Math.random() * gameState.worldLeagues[tierRandom].length);
+                const t = gameState.worldLeagues[tierRandom][groupRandom];
                 gameState.currentOpponent = t[Math.floor(Math.random()*t.length)];
-                if(gameState.currentOpponent === gameState.club) gameState.currentOpponent = t[0] !== gameState.club ? t[0] : t[1]; 
-            }
-            else {
+                if(gameState.currentOpponent === gameState.club) gameState.currentOpponent = t[0] !== gameState.club ? t[0] : t[1];
+            } else {
                 gameState.nextFixtureType = 'League';
                 const fixture = gameState.leagueFixtures[gameState.matchweek];
                 if (fixture && (fixture.home === gameState.club || fixture.away === gameState.club)) {
@@ -3398,49 +3454,46 @@
         function renderUpcomingFixtures() {
             const container = document.getElementById('upcoming-fixtures-container');
             if (!container) return;
-            
-            let html = '<div style="font-size: 13px;">';
-            const maxWeeks = Math.min(5, gameState.totalMatchweeks - gameState.matchweek);
-            
-            for (let i = 0; i < maxWeeks; i++) {
-                const mw = gameState.matchweek + i;
-                if (mw >= gameState.totalMatchweeks) break;
-                
-                const fixture = gameState.fixtureCalendar[mw];
-                if (!fixture) continue;
-                
-                let opponent = '';
-                let type = 'League';
-                
-                if (gameState.europeanCompetition && gameState.europeanStatus === 'Active' && gameState.europeanSchedule[gameState.europeanRoundIndex] === mw) {
-                    type = gameState.europeanCompetition;
-                    opponent = '[European Opponent]';
-                } else if (cupSchedule && cupSchedule.includes(mw)) {
-                    type = `${cupNames[gameState.country]}`;
-                    opponent = '[Cup Opponent]';
-                } else if (cup2Schedule && cup2Schedule.includes(mw)) {
-                    type = 'League Cup';
-                    opponent = '[Cup Opponent]';
-                } else {
-                    const leagueFixture = gameState.leagueFixtures[mw];
-                    if (leagueFixture) {
-                        if (leagueFixture.home === gameState.club) {
-                            opponent = `${leagueFixture.away} (H)`;
-                        } else if (leagueFixture.away === gameState.club) {
-                            opponent = `${leagueFixture.home} (A)`;
-                        } else {
-                            opponent = '[TBD]';
-                        }
-                    }
-                }
-                
-                const highlight = mw === gameState.matchweek ? 'style="background: var(--primary); color: var(--text-light); padding: 5px; border-radius: 3px; font-weight: bold;"' : 'style="padding: 5px; border-bottom: 1px solid var(--panel-border);"';
-                html += `<div ${highlight}>
-                    <strong>${fixture.dateStr}</strong> ${fixture.time}<br>
-                    <small style="color: ${mw === gameState.matchweek ? 'var(--text-light)' : '#7f8c8d'};">${type}</small> - ${opponent}
-                </div>`;
+            // Build merged upcoming event list (next 5 events) from league, cups, europe
+            const upcoming = [];
+
+            // collect next N league fixtures (by matchweek)
+            for (let i = gameState.matchweek; i < Math.min(gameState.totalMatchweeks, gameState.matchweek + 10); i++) {
+                const f = gameState.fixtureCalendar[i];
+                if (f && f.date) upcoming.push({ date: f.date, time: f.time, type: 'League', matchweek: i, fixture: f });
             }
-            
+
+            // collect remaining cup fixtures
+            (gameState.cupFixtures || []).forEach(cf => {
+                if (cf && cf.date && gameState.cupStatus === 'Active' && cf.date >= (gameState.fixtureCalendar[gameState.matchweek] ? gameState.fixtureCalendar[gameState.matchweek].date : new Date())) {
+                    upcoming.push({ date: cf.date, time: '19:45', type: cupNames[gameState.country] || 'Cup', round: cf.roundName });
+                }
+            });
+            (gameState.cup2Fixtures || []).forEach(cf => {
+                if (cf && cf.date && gameState.cup2Status === 'Active' && cf.date >= (gameState.fixtureCalendar[gameState.matchweek] ? gameState.fixtureCalendar[gameState.matchweek].date : new Date())) {
+                    upcoming.push({ date: cf.date, time: '19:45', type: 'League Cup', round: cf.roundName });
+                }
+            });
+            (gameState.europeFixtures || []).forEach(ef => {
+                if (ef && ef.date && gameState.europeanStatus === 'Active' && ef.date >= (gameState.fixtureCalendar[gameState.matchweek] ? gameState.fixtureCalendar[gameState.matchweek].date : new Date())) {
+                    upcoming.push({ date: ef.date, time: '19:45', type: gameState.europeanCompetition || 'Europe', round: ef.roundName });
+                }
+            });
+
+            upcoming.sort((a,b) => a.date - b.date);
+
+            const maxShow = Math.min(5, upcoming.length);
+            let html = '<div style="font-size: 13px;">';
+            for (let i = 0; i < maxShow; i++) {
+                const e = upcoming[i];
+                const dateStr = e.date.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+                const isNow = (e.type === 'League' && e.matchweek === gameState.matchweek);
+                const highlight = isNow ? 'style="background: var(--primary); color: var(--text-light); padding: 5px; border-radius: 3px; font-weight: bold;"' : 'style="padding: 5px; border-bottom: 1px solid var(--panel-border);"';
+                let opponent = e.fixture ? (e.fixture.home === gameState.club ? `${e.fixture.away} (H)` : `${e.fixture.home} (A)`) : (e.opponent || '[TBD]');
+                let typeLabel = e.type;
+                if (e.round) typeLabel += ` - ${e.round}`;
+                html += `<div ${highlight}><strong>${dateStr}</strong> ${e.time}<br><small style="color: ${isNow ? 'var(--text-light)' : '#7f8c8d'};">${typeLabel}</small> - ${opponent}</div>`;
+            }
             html += '</div>';
             container.innerHTML = html;
         }
@@ -3453,14 +3506,24 @@
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             let currentMonth = -1;
             
+            // Build a timeline including league and cup events and render month-by-month
+            const timeline = [];
             for (let mw = 0; mw < gameState.totalMatchweeks; mw++) {
                 const fixture = gameState.fixtureCalendar[mw];
                 if (!fixture) continue;
-                
-                const date = fixture.date;
+                timeline.push({ date: fixture.date, type: 'League', label: `League MW${mw+1}`, mw });
+            }
+            (gameState.cupFixtures || []).forEach(cf => timeline.push({ date: cf.date, type: cupNames[gameState.country] || 'Cup', label: cf.roundName }));
+            (gameState.cup2Fixtures || []).forEach(cf => timeline.push({ date: cf.date, type: 'League Cup', label: cf.roundName }));
+            (gameState.europeFixtures || []).forEach(ef => timeline.push({ date: ef.date, type: gameState.europeanCompetition || 'Europe', label: ef.roundName }));
+
+            timeline.sort((a,b) => a.date - b.date);
+
+            for (let idx = 0; idx < timeline.length; idx++) {
+                const item = timeline[idx];
+                const date = item.date;
                 const month = date.getMonth();
-                
-                // Add month header when month changes
+
                 if (month !== currentMonth) {
                     if (currentMonth !== -1) html += '<br>';
                     html += `<strong style="color: var(--primary);">${monthNames[month]}</strong><br>`;
@@ -3470,32 +3533,20 @@
                     }
                     currentMonth = month;
                 }
-                
+
                 let typeIcon = '⚽';
-                let bgColor = 'transparent';
-                let weekLabel = `League MW${mw+1}`;
-                
-                if (gameState.europeanCompetition && gameState.europeanStatus === 'Active' && gameState.europeanSchedule[gameState.europeanRoundIndex] === mw) {
-                    typeIcon = '🌍';
-                    weekLabel = `${gameState.europeanCompetition}`;
-                } else if (cupSchedule && cupSchedule.includes(mw)) {
-                    typeIcon = '🏆';
-                    weekLabel = `${cupNames[gameState.country]}`;
-                } else if (cup2Schedule && cup2Schedule.includes(mw)) {
-                    typeIcon = '🎖️';
-                    weekLabel = 'League Cup';
-                }
-                
-                if (mw === gameState.matchweek) {
-                    bgColor = 'var(--primary)';
-                    html += `<span style="background: ${bgColor}; color: var(--text-light); padding: 2px 4px; border-radius: 2px; font-weight: bold;">${weekLabel}</span> `;
-                } else if (mw < gameState.matchweek) {
-                    html += `<span style="color: #95a5a6;">${weekLabel}</span> `;
+                if (item.type === 'League Cup') typeIcon = '🎖️';
+                else if (item.type === (cupNames[gameState.country] || 'Cup')) typeIcon = '🏆';
+                else if (item.type === gameState.europeanCompetition) typeIcon = '🌍';
+
+                const isNow = item.type === 'League' && item.mw === gameState.matchweek;
+                if (isNow) {
+                    html += `<span style="background: var(--primary); color: var(--text-light); padding: 2px 4px; border-radius: 2px; font-weight: bold;">${item.label}</span> `;
                 } else {
-                    html += `<span>${typeIcon} ${weekLabel}</span> `;
+                    html += `<span>${typeIcon} ${item.label}</span> `;
                 }
-                
-                if ((mw + 1) % 4 === 0) html += '<br>';
+
+                if (((idx + 1) % 4) === 0) html += '<br>';
             }
             
             html += '</div>';
